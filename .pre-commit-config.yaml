@@ -1,0 +1,74 @@
+# KEEL -- Pre-commit hooks for mechanical guardrail enforcement
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.6
+    hooks:
+      - id: ruff
+        args: [--fix, --ignore, "E501,F401"]
+      - id: ruff-format
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-ll, --skip, "B101", -r]
+        # Customize: restrict to your source directories
+        # files: ^(src|lib)/
+
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.155.0
+    hooks:
+      - id: semgrep
+        args: [--config, auto, --error, --skip-unknown-extensions]
+        # Customize: restrict to your source directories
+        # files: ^(src|lib)/
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb, "1000"]
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  # LLM anti-pattern detection
+  - repo: local
+    hooks:
+      - id: no-todo-fixme
+        name: Block TODO/FIXME/HACK/PLACEHOLDER in code
+        entry: bash -c 'grep -rniE "TODO|FIXME|HACK|XXX|PLACEHOLDER" "$@" && echo "❌ Remove TODOs before committing -- implement it or delete it" && exit 1 || exit 0' --
+        language: system
+        types: [python]
+      - id: no-silenced-exceptions
+        name: Block bare except, except BaseException, and silenced exceptions
+        entry: bash -c 'grep -rnE "except\s*:|except\s+BaseException\s*:" "$@" && echo "❌ No bare except: or except BaseException: -- catch specific exceptions" && exit 1 || exit 0' --
+        language: system
+        types: [python]
+      - id: no-pass-except
+        name: Block except...pass (silenced errors)
+        entry: python3 -c "
+import sys, re
+found = False
+for path in sys.argv[1:]:
+    lines = open(path).readlines()
+    for i, line in enumerate(lines[:-1]):
+        if re.search(r'except.*:\s*$', line) and re.search(r'^\s+pass\s*$', lines[i+1]):
+            print(f'❌ {path}:{i+1} -- except...pass (silenced exception)')
+            found = True
+sys.exit(1 if found else 0)
+"
+        language: system
+        types: [python]

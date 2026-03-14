@@ -1,0 +1,186 @@
+name: KEEL CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-template:
+    name: Validate Copier Template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install Copier
+        run: pip install copier
+      - name: Render template with defaults
+        run: copier copy --defaults --trust . /tmp/test-output
+      - name: Verify rendered output structure
+        run: |
+          echo "Checking rendered output..."
+          EXPECTED_FILES=(
+            ".github/workflows/ci.yml"
+            ".github/workflows/pr-validation.yml"
+            ".github/PULL_REQUEST_TEMPLATE.md"
+            ".github/CODEOWNERS"
+            ".github/copilot-instructions.md"
+            ".github/instructions/workflow.md"
+            ".github/instructions/guardrails.md"
+            ".github/instructions/prompts.md"
+            ".github/instructions/processes.md"
+            ".github/dependabot.yml"
+            ".pre-commit-config.yaml"
+            "Makefile"
+            "bootstrap.sh"
+            "CONTRIBUTING.md"
+            "VERSION"
+            "LICENSE"
+            "README.md"
+          )
+          MISSING=0
+          for f in "${EXPECTED_FILES[@]}"; do
+            if [ -f "/tmp/test-output/$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ Missing: $f"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          if [ "$MISSING" -gt 0 ]; then
+            echo "::error::$MISSING expected files missing from rendered output"
+            exit 1
+          fi
+          echo "All expected files present"
+
+  lint-yaml:
+    name: Lint YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install yamllint
+        run: pip install yamllint
+      - name: Lint YAML files
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" \
+            $(find . -type f \( -name '*.yml' -o -name '*.yaml' \) \
+              ! -path './.git/*' \
+              ! -name '*.jinja' \
+              | sort)
+
+  check-jinja:
+    name: Check Jinja Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install Jinja2
+        run: pip install jinja2
+      - name: Validate Jinja templates
+        run: |
+          ERRORS=0
+          for f in $(find . -name '*.jinja' ! -path './.git/*' | sort); do
+            if python3 -c "
+          from jinja2 import Environment, FileSystemLoader, exceptions
+          import os
+          env = Environment(
+              loader=FileSystemLoader(os.path.dirname('$f') or '.'),
+              undefined=__import__('jinja2').Undefined,
+          )
+          try:
+              env.get_template(os.path.basename('$f'))
+              print('✅ $f')
+          except exceptions.TemplateSyntaxError as e:
+              print(f'❌ $f: {e}')
+              exit(1)
+          "; then
+              :
+            else
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error::$ERRORS Jinja template(s) have syntax errors"
+            exit 1
+          fi
+          echo "All Jinja templates are valid"
+
+  verify-structure:
+    name: Verify Repository Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check required files exist
+        run: |
+          REQUIRED_FILES=(
+            "copier.yml"
+            "VERSION"
+            "bootstrap.sh"
+            "KEEL-README.md"
+            "CONTRIBUTING.md"
+            "KEEL-LICENSE"
+            "LICENSE.jinja"
+            "README.md.jinja"
+            ".pre-commit-config.yaml"
+            ".github/workflows/ci.yml.jinja"
+            ".github/workflows/pr-validation.yml"
+            ".github/PULL_REQUEST_TEMPLATE.md"
+            ".github/dependabot.yml"
+            ".github/copilot-instructions.md.jinja"
+            ".github/instructions/workflow.md"
+            ".github/instructions/guardrails.md"
+            ".github/instructions/prompts.md"
+            ".github/instructions/processes.md"
+            ".github/CODEOWNERS.jinja"
+            "Makefile.jinja"
+          )
+          MISSING=0
+          for f in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ Missing: $f"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          if [ "$MISSING" -gt 0 ]; then
+            echo "::error::$MISSING required files missing from repository"
+            exit 1
+          fi
+          echo "All required files present"
+      - name: Validate copier.yml is valid YAML
+        run: python3 -c "import yaml; yaml.safe_load(open('copier.yml'))" && echo "✅ copier.yml is valid YAML"
+      - name: Check VERSION format
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "✅ VERSION ($VERSION) is valid semver"
+          else
+            echo "❌ VERSION ($VERSION) is not valid semver (expected X.Y.Z)"
+            exit 1
+          fi
+
+  lint-markdown:
+    name: Lint Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            KEEL-README.md
+            CONTRIBUTING.md
+            docs/**/*.md
+          config: >
+            {"line-length": false, "no-duplicate-heading": false}

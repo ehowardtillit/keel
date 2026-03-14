@@ -1,0 +1,52 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-check:
+    name: PR Requirements
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check PR Title (Conventional Commits)
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|refactor|test|chore|ci|perf|style|build|revert)(\(.+\))?\!?:\ .+ ]]; then
+            echo "❌ PR title must follow conventional commits format"
+            exit 1
+          fi
+          echo "✅ PR title OK"
+      - name: Check PR Description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 50 ]; then
+            echo "❌ PR description must be at least 50 characters"
+            exit 1
+          fi
+          echo "✅ PR description OK"
+
+  tier-detection:
+    name: Detect Change Tier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Classify tier
+        run: |
+          # Customize: adjust patterns to match your project's high-risk paths
+          S_PATTERNS="migrations|middleware|deploy|\.env|security|auth|infra|schema|docker"
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed.txt 2>/dev/null || true
+          if grep -qiE "$S_PATTERNS" /tmp/changed.txt 2>/dev/null; then
+            echo "⚠️ Tier S change -- requires analysis doc + ADR"
+          else
+            echo "✅ Standard change"
+          fi

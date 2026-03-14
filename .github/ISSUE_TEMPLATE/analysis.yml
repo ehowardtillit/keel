@@ -1,0 +1,68 @@
+name: Analysis Task
+description: Create an analysis ticket for investigating a problem or designing a solution
+title: "[Analysis] "
+labels: ["analysis", "tier-s"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Analysis Task
+        Use this for Tier S changes that need investigation before implementation.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem or opportunity are we investigating?
+      placeholder: "We need to understand the best approach for..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in scope and out of scope for this analysis?
+      placeholder: |
+        In scope:
+        -
+        Out of scope:
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: questions
+    attributes:
+      label: Key Questions
+      description: What specific questions must the analysis answer?
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 - Critical (blocking)
+        - P1 - High (needed soon)
+        - P2 - Medium (planned)
+        - P3 - Low (backlog)
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected Output
+      description: What deliverables should this analysis produce?
+      placeholder: |
+        - Analysis document in docs/analysis/NNN-*.md
+        - ADR if architectural decision needed
+        - Implementation tickets if approved
+    validations:
+      required: false

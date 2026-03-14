@@ -1,0 +1,51 @@
+# ⚓ KEEL -- Copier Template Configuration
+# https://copier.readthedocs.io/
+
+_min_copier_version: "9.0.0"
+_subdirectory: ""
+_templates_suffix: .jinja
+
+_exclude:
+  - "copier.yml"
+  - ".git"
+  - ".github/workflows/keel-ci.yml"
+  - ".github/ISSUE_TEMPLATE/bug.yml"
+  - ".github/ISSUE_TEMPLATE/feature.yml"
+  - ".github/ISSUE_TEMPLATE/config.yml"
+  - "KEEL-README.md"
+  - "KEEL-LICENSE"
+
+# --- Questions ---
+
+project_name:
+  type: str
+  help: "Project name (e.g., 'My API', 'Acme CRM')"
+  default: "My Project"
+
+github_owner:
+  type: str
+  help: "GitHub username or org (for CODEOWNERS)"
+  default: "your-github-username"
+
+python_version:
+  type: str
+  help: "Python version for CI"
+  default: "3.11"
+  choices:
+    - "3.11"
+    - "3.12"
+    - "3.13"
+
+source_dirs:
+  type: str
+  help: "Space-separated source directories (for linting/scanning)"
+  default: "src/"
+
+license:
+  type: str
+  help: "License type"
+  default: "AGPL-3.0"
+  choices:
+    - "AGPL-3.0"
+    - "MIT"
+    - "Apache-2.0"

@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - run: pip install ruff==0.15.6
+      - name: Ruff lint
+        run: ruff check {{ source_dirs }} --ignore E501,F401 --exclude "*/venv/*,*/.venv/*"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - run: pip install bandit==1.9.4
+      - name: Bandit scan
+        run: bandit -r {{ source_dirs }} -ll --skip B101 -f txt
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@v3
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - name: Install dependencies
+        run: |
+          [ -f requirements.txt ] && pip install -r requirements.txt || true
+          pip install pytest pytest-cov pip-audit
+      - name: Run tests
+        run: |
+          if [ -d tests ]; then
+            pytest tests/ -v --tb=short --cov --cov-report=term-missing
+          else
+            echo "⚠️ No tests/ directory found -- skipping"
+          fi
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - run: pip install pip-audit
+      - name: Audit dependencies
+        run: '[ -f requirements.txt ] && pip-audit -r requirements.txt --desc || echo "No requirements.txt found -- skipping audit"'
+
+  context-staleness:
+    name: Context File Freshness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check context file freshness
+        run: |
+          for file in .github/context/*.md; do
+            if [ -f "$file" ]; then
+              LAST_MODIFIED=$(git log -1 --format="%ci" -- "$file" 2>/dev/null | cut -d' ' -f1)
+              if [ -n "$LAST_MODIFIED" ]; then
+                DAYS_AGO=$(( ($(date +%s) - $(date -d "$LAST_MODIFIED" +%s)) / 86400 ))
+                if [ "$DAYS_AGO" -gt 30 ]; then
+                  echo "⚠️  STALE ($DAYS_AGO days): $file"
+                else
+                  echo "✅ Fresh ($DAYS_AGO days): $file"
+                fi
+              fi
+            fi
+          done

@@ -1,0 +1,90 @@
+# Copilot Instructions: {{ project_name }}
+
+## Project Overview
+
+> **Customize:** Add your project overview, directory map, and architecture notes here.
+> Include: what the project does, tech stack, directory layout table, and any pipeline/architecture diagrams.
+
+---
+
+## Context Management: Read First
+
+**ALWAYS read these files before starting any work:**
+
+| File | Content |
+|------|---------|
+| `.github/context/ARCHITECTURE.md` | System design, module boundaries |
+| `.github/context/API_SURFACE.md` | All endpoints grouped by domain |
+| `.github/context/MODULE_MAP.md` | File locations, what lives where |
+| `.github/context/CONVENTIONS.md` | Coding style, naming, patterns |
+| `.github/context/CHANGELOG_RECENT.md` | Last 50 changes |
+| `docs/decisions/` | ADRs on past architectural decisions |
+| `docs/plans/` | Implementation plans (what we intend to build) |
+| `docs/implementations/` | Implementation records (what was actually built) |
+
+---
+
+## Tiered Workflow (S/A/B/C)
+
+All tiers: branch + PR + tests + lint + security. Tier sets the ceremony level.
+
+| Tier | Scope | Ceremony | Review |
+|------|-------|----------|--------|
+| **S** | Schema, security, infra, auth, deploy | Issue > analysis > ADR > plan > implement > record | Human required |
+| **A** | New endpoint, service, model, integration | Issue > plan > implement > record | Human required |
+| **B** | Modify existing endpoint, logging, filters | Implement > record | Auto-merge if green |
+| **C** | Docs, comments, typos | Implement | Auto-merge if green |
+
+Conventional commits required: `feat|fix|docs|refactor|test|chore|ci|perf: description`
+
+Details, ticket creation, and ceremony steps: `.github/instructions/workflow.md`
+
+---
+
+## Critical Guardrails
+
+### NEVER
+- Drop a database or schema
+- Delete infrastructure files (Makefile, CI, deploy scripts)
+- Push directly to main
+- Skip tests to save time
+- Store secrets in code or commit .env with real credentials
+- Leave TODO/FIXME/HACK in committed code
+- Generate ghost implementations (functions never called or tested)
+- Silence errors with bare except: or except...pass
+
+### ALWAYS
+- Run tests before AND after changes
+- Update .github/context/ if architecture/API/modules change
+- Verify every import resolves before committing
+- Keep functions under 50 lines
+- Prefer editing existing files over creating new ones
+- Match existing code style in the file
+
+Full guardrails (NEVER/ALWAYS/LLM-specific + verification protocol): `.github/instructions/guardrails.md`
+
+---
+
+## Delegation
+
+Main thread is for reporting, deciding, and delegating. Delegate implementation to sub-agents.
+
+| Agent | Use for | Parallel |
+|-------|---------|----------|
+| explore | Codebase questions, file searches | Yes |
+| task | Builds, tests, lints | No |
+| general-purpose | Complex multi-step implementation | No |
+| code-review | Reviewing changes | Yes |
+
+Max 3 concurrent agents.
+
+---
+
+## Detailed Instructions
+
+| Topic | File |
+|-------|------|
+| Full tier workflows, ticket creation, ceremonies | `.github/instructions/workflow.md` |
+| All guardrails + LLM verification protocol | `.github/instructions/guardrails.md` |
+| Prompt patterns (/analyze, /plan, /implement, etc.) | `.github/instructions/prompts.md` |
+| Delegation, orchestration, API-first, testing, docs | `.github/instructions/processes.md` |

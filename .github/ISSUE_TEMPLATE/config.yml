@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: KEEL Documentation
+    url: https://github.com/ehowardtillit/keel#readme
+    about: Read the docs before opening an issue

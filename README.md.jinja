@@ -1,0 +1,48 @@
+# {{ project_name }}
+
+> Add your project description here.
+
+## Quick Start
+
+```bash
+git clone <your-repo-url>
+cd {{ project_name | lower | replace(' ', '-') }}
+./bootstrap.sh
+source .venv/bin/activate
+```
+
+## Development
+
+```bash
+make help              # Show all targets
+make lint              # Lint with ruff
+make test              # Run tests
+make test-coverage     # Tests + coverage report
+make security-scan     # Bandit scan
+make hooks-run         # Run all pre-commit hooks
+```
+
+## Project Structure
+
+```
+{{ project_name | lower | replace(' ', '-') }}/
+├── {{ source_dirs }}                # Source code
+├── tests/                           # Test suite
+├── .github/
+│   ├── copilot-instructions.md      # AI agent playbook
+│   ├── instructions/                # Detailed workflow docs
+│   ├── context/                     # AI agent context files
+│   └── workflows/                   # CI/CD pipelines
+├── docs/                            # Documentation
+├── Makefile                         # Build targets
+├── bootstrap.sh                     # One-time setup
+└── CONTRIBUTING.md                  # How to contribute
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+See [LICENSE](LICENSE).

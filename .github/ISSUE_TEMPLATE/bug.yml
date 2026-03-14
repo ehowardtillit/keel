@@ -1,0 +1,94 @@
+name: Bug Report
+description: Report a bug with the KEEL template
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+        Thanks for helping improve KEEL! Please fill out the details below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+      placeholder: "When I run copier copy with KEEL, ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Run `copier copy --trust https://github.com/ehowardtillit/keel .`
+        2. Select options ...
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include error messages or screenshots if available.
+    validations:
+      required: true
+
+  - type: input
+    id: keel-version
+    attributes:
+      label: KEEL Version
+      description: Check the VERSION file or the tag you used.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: copier-version
+    attributes:
+      label: Copier Version
+      description: Output of `copier --version`
+      placeholder: "9.7.1"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Output of `python3 --version`
+      placeholder: "3.12.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information (copier answers used, environment details, etc.)
+    validations:
+      required: false
