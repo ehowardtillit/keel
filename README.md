@@ -135,8 +135,8 @@ keel/
 ├── CONTRIBUTING.md                   # Workflow, branching, testing, style
 ├── LICENSE.jinja                     # Templated license (MIT/Apache/AGPL)
 ├── README.md.jinja                   # Consumer project README
-├── KEEL-README.md                    # KEEL template documentation (you are here)
-└── KEEL-LICENSE                      # KEEL's own AGPL-3.0 license
+├── README.md                         # KEEL template documentation (you are here)
+└── LICENSE                           # AGPL-3.0
 ```
 
 > Files marked *(KEEL only)* are used by the KEEL repository itself and are not copied to consumer projects.
@@ -420,4 +420,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. The short version:
 
 ## License
 
-AGPL-3.0 -- see [KEEL-LICENSE](KEEL-LICENSE)
+AGPL-3.0 -- see [LICENSE](LICENSE)

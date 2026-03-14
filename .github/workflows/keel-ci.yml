@@ -127,9 +127,9 @@ jobs:
             "copier.yml"
             "VERSION"
             "bootstrap.sh"
-            "KEEL-README.md"
+            "README.md"
             "CONTRIBUTING.md"
-            "KEEL-LICENSE"
+            "LICENSE"
             "LICENSE.jinja"
             "README.md.jinja"
             ".pre-commit-config.yaml"
@@ -176,10 +176,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: DavidAnson/markdownlint-cli2-action@v19
+      - uses: DavidAnson/markdownlint-cli2-action@v22
         with:
           globs: |
-            KEEL-README.md
+            README.md
             CONTRIBUTING.md
             docs/**/*.md
           config: >

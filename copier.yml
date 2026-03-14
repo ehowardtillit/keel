@@ -12,8 +12,8 @@ _exclude:
   - ".github/ISSUE_TEMPLATE/bug.yml"
   - ".github/ISSUE_TEMPLATE/feature.yml"
   - ".github/ISSUE_TEMPLATE/config.yml"
-  - "KEEL-README.md"
-  - "KEEL-LICENSE"
+  - "README.md"
+  - "LICENSE"
 
 # --- Questions ---
 
