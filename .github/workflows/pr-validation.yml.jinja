@@ -49,6 +49,7 @@ jobs:
             echo "Standard change -- run /review before merging"
           fi
 {% endif %}
+{% if not custom_methodology %}
 {% raw %}
 
   tier-detection:
@@ -69,3 +70,4 @@ jobs:
             echo "✅ Standard change"
           fi
 {% endraw %}
+{% endif %}

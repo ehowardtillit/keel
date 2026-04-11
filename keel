@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""⚓ keel -- Engineering Stack CLI
+
+Reads keel.yml from the current directory and drives Copier to
+regenerate infrastructure files. Users interact with keel.yml
+instead of .copier-answers.yml.
+"""
+
+import argparse
+import os
+import subprocess
+import sys
+import textwrap
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+KEEL_FILE = "keel.yml"
+
+# keel.yml path → (copier flag name, transform)
+# transform: None = pass through, callable = apply function
+FIELD_MAP = [
+    ("project.name",                      "project_name",          None),
+    ("project.owner",                     "github_owner",          None),
+    ("project.source_dirs",               "source_dirs",           None),
+    ("project.license",                   "license",               None),
+    ("methodology.type",                  "custom_methodology",    lambda v: v == "custom"),
+    ("methodology.branching",             "branching_model",       None),
+    ("methodology.skip_agent_instructions", "skip_agent_instructions", None),
+    ("languages.python.enabled",          "lang_python",           None),
+    ("languages.python.version",          "python_version",        None),
+    ("languages.typescript.enabled",      "lang_typescript",       None),
+    ("languages.go.enabled",              "lang_go",               None),
+    ("languages.rust.enabled",            "lang_rust",             None),
+    ("languages.php.enabled",             "lang_php",              None),
+    ("languages.php.version",             "php_version",           None),
+    ("languages.elixir.enabled",          "lang_elixir",           None),
+    ("languages.elixir.version",          "elixir_version",        None),
+    ("languages.elixir.otp_version",      "otp_version",           None),
+    ("agents.claude_code",                "agent_claude_code",     None),
+    ("agents.cursor",                     "agent_cursor",          None),
+    ("agents.github_copilot",             "agent_github_copilot",  None),
+    ("agents.codex",                      "agent_codex",           None),
+    ("stack.memory.mempalace",            "mempalace_enabled",     None),
+    ("stack.workflow.gstack",             "gstack_enabled",        None),
+    ("stack.enforcement.runtime",         "runtime_enforcement",   None),
+    ("stack.enforcement.merge_gate",      "merge_gate",            None),
+    ("stack.security.codeguard",          "codeguard_enabled",     None),
+    ("stack.dependencies.updater",        "dependency_updates",    None),
+]
+
+
+# ── YAML loading ─────────────────────────────────────────────────────────────
+
+def _parse_yaml_basic(text):
+    """Minimal YAML-subset parser for when PyYAML is unavailable."""
+    root, stack = {}, [(root, -1)]  # (dict_node, indent)
+    for raw in text.splitlines():
+        s = raw.split("#")[0].rstrip()
+        if not s or s.startswith("#"):
+            continue
+        indent, kv = len(raw) - len(raw.lstrip()), s.strip()
+        while len(stack) > 1 and indent <= stack[-1][1]:
+            stack.pop()
+        if ":" in kv:
+            key, _, val = kv.partition(":")
+            key, val = key.strip(), val.strip().strip('"').strip("'")
+            if val == "":
+                child = {}; stack[-1][0][key] = child; stack.append((child, indent))
+            elif val == "[]":
+                stack[-1][0][key] = []
+            elif val.startswith("["):
+                stack[-1][0][key] = [i.strip().strip('"').strip("'") for i in val.strip("[]").split(",") if i.strip()]
+            elif val.lower() in ("true", "false"):
+                stack[-1][0][key] = val.lower() == "true"
+            else:
+                try: stack[-1][0][key] = int(val)
+                except ValueError: stack[-1][0][key] = val
+        elif kv.startswith("- "):
+            item, parent = kv[2:].strip().strip('"').strip("'"), stack[-1][0]
+            if isinstance(parent, dict):
+                lk = list(parent.keys())[-1]
+                if not isinstance(parent[lk], list): parent[lk] = []
+                parent[lk].append(item)
+    return root
+
+
+def load_keel():
+    if not os.path.exists(KEEL_FILE):
+        print(f"Error: {KEEL_FILE} not found in current directory.", file=sys.stderr)
+        sys.exit(1)
+    text = open(KEEL_FILE).read()
+    return yaml.safe_load(text) if yaml else _parse_yaml_basic(text)
+
+
+def _get(data, dotpath, default=None):
+    node = data
+    for k in dotpath.split("."):
+        if not isinstance(node, dict) or k not in node:
+            return default
+        node = node[k]
+    return node
+
+
+def build_copier_flags(data):
+    flags = []
+    for dotpath, copier_key, transform in FIELD_MAP:
+        val = _get(data, dotpath)
+        if val is None:
+            continue
+        val = transform(val) if transform else val
+        if isinstance(val, bool):
+            val = str(val).lower()
+        flags += ["-d", f"{copier_key}={val}"]
+    return flags
+
+
+# ── Subcommands ──────────────────────────────────────────────────────────────
+
+LANGUAGES = ("python", "typescript", "go", "rust", "php", "elixir")
+AGENT_LABELS = [("claude_code", "Claude Code"), ("cursor", "Cursor"),
+                ("github_copilot", "Copilot"), ("codex", "Codex")]
+
+
+def cmd_status(_args):
+    data = load_keel()
+    langs = []
+    for lang in LANGUAGES:
+        info = _get(data, f"languages.{lang}", {})
+        if not info.get("enabled"):
+            continue
+        label = lang.capitalize()
+        ver = info.get("version")
+        langs.append(f"{label} {ver}" if ver else label)
+
+    agents = [lbl for key, lbl in AGENT_LABELS if _get(data, f"agents.{key}")]
+
+    mtype = _get(data, "methodology.type", "keel")
+    mtype_display = f"{mtype} (S/A/B/C tiers)" if mtype == "keel" else mtype
+
+    rt = _get(data, "stack.enforcement.runtime", "none")
+    mg = _get(data, "stack.enforcement.merge_gate", "none")
+    enforcement_parts = [x for x in (rt, mg) if x != "none"]
+    ci_jobs = _get(data, "ci_extra_jobs", [])
+
+    print("KEEL Stack Status")
+    print("\u2500" * 40)
+    print(f"  Project:      {_get(data, 'project.name', '?')} (owner: {_get(data, 'project.owner', '?')})")
+    print(f"  Methodology:  {mtype_display}")
+    print(f"  Branching:    {_get(data, 'methodology.branching', '?')}")
+    print(f"  Languages:    {', '.join(langs) if langs else 'none'}")
+    print(f"  Agents:       {', '.join(agents) if agents else 'none'}")
+    print(f"  Memory:       {'MemPalace' if _get(data, 'stack.memory.mempalace') else 'none'}")
+    print(f"  Workflow:     {'gstack' if _get(data, 'stack.workflow.gstack') else 'none'}")
+    print(f"  Enforcement:  {' / '.join(enforcement_parts) if enforcement_parts else 'none'}")
+    print(f"  Security:     {'CodeGuard' if _get(data, 'stack.security.codeguard') else 'none'}")
+    print(f"  Dependencies: {_get(data, 'stack.dependencies.updater', 'none')}")
+    if ci_jobs:
+        print(f"  CI Extensions: {len(ci_jobs)} custom job{'s' if len(ci_jobs) != 1 else ''}")
+
+
+def cmd_validate(_args):
+    data = load_keel()
+    errors, warnings = [], []
+    if _get(data, "version") != 1:
+        errors.append("'version' must be 1")
+    if not _get(data, "project.name"):
+        errors.append("'project.name' is required")
+    if not any(_get(data, f"languages.{l}.enabled") for l in LANGUAGES):
+        errors.append("At least one language must be enabled")
+    if _get(data, "methodology.type") == "custom" and not _get(data, "methodology.skip_agent_instructions"):
+        warnings.append(
+            "methodology.type is 'custom' but skip_agent_instructions is false -- "
+            "KEEL-generated agent instructions may conflict with your methodology")
+    for w in warnings:
+        print(f"  Warning: {w}")
+    if errors:
+        for e in errors:
+            print(f"  Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    print("keel.yml is valid.")
+
+
+def _write_ci_custom(jobs):
+    """Write .github/workflows/ci-custom.yml from ci_extra_jobs entries."""
+    if not jobs:
+        return
+    os.makedirs(".github/workflows", exist_ok=True)
+    lines = [
+        "# Auto-generated by `keel regenerate` -- do not edit manually.",
+        "name: CI Custom",
+        "",
+        "on:",
+        "  push:",
+        "    branches: [main, master]",
+        "  pull_request:",
+        "",
+        "jobs:",
+    ]
+    for job in jobs:
+        name = job.get("name", "custom")
+        slug = name.replace(" ", "-").lower()
+        run_cmd = job.get("run", "echo 'no command specified'")
+        lines += [
+            f"  {slug}:",
+            f"    name: {name}",
+            "    runs-on: ubuntu-latest",
+            "    steps:",
+            "      - uses: actions/checkout@v4",
+            f"      - name: {name}",
+            f"        run: {run_cmd}",
+            "",
+        ]
+    path = os.path.join(".github", "workflows", "ci-custom.yml")
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+    print(f"  Wrote {path}")
+
+
+def _run_copier(data, extra_args=None):
+    flags = build_copier_flags(data)
+    cmd = ["copier", "update", "--trust", "--force"] + flags
+    if extra_args:
+        cmd += extra_args
+    print(f"  Running: {' '.join(cmd)}\n")
+    result = subprocess.run(cmd)
+    return result.returncode
+
+
+def cmd_regenerate(_args):
+    data = load_keel()
+    rc = _run_copier(data)
+    if rc != 0:
+        print("\nCopier exited with errors.", file=sys.stderr)
+        sys.exit(rc)
+    ci_jobs = _get(data, "ci_extra_jobs", [])
+    if ci_jobs:
+        _write_ci_custom(ci_jobs)
+    print("\nRegeneration complete.")
+
+
+def cmd_diff(_args):
+    data = load_keel()
+    rc = _run_copier(data, extra_args=["--pretend"])
+    sys.exit(rc)
+
+
+# ── Entry point ──────────────────────────────────────────────────────────────
+
+BANNER = textwrap.dedent("""\
+    ⚓ keel -- Engineering Stack CLI
+    Usage: keel <command>
+
+    Commands:
+      status      Show current keel.yml configuration summary
+      validate    Check keel.yml for errors
+      regenerate  Re-run Copier with values from keel.yml
+      diff        Preview what regenerate would change
+""")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="keel",
+        description="Engineering Stack CLI -- reads keel.yml, drives Copier.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="Run 'keel <command>' to get started.",
+    )
+    sub = parser.add_subparsers(dest="command")
+    sub.add_parser("status", help="Show current keel.yml configuration summary")
+    sub.add_parser("validate", help="Check keel.yml for errors")
+    sub.add_parser("regenerate", help="Re-run Copier with values from keel.yml")
+    sub.add_parser("diff", help="Preview what regenerate would change")
+
+    args = parser.parse_args()
+
+    if not args.command:
+        print(BANNER)
+        sys.exit(0)
+
+    dispatch = {
+        "status": cmd_status,
+        "validate": cmd_validate,
+        "regenerate": cmd_regenerate,
+        "diff": cmd_diff,
+    }
+    dispatch[args.command](args)
+
+
+if __name__ == "__main__":
+    main()

@@ -8,6 +8,7 @@ _templates_suffix: .jinja
 
 _tasks:
   - "chmod +x bootstrap.sh"
+  - "chmod +x keel"
 
 _exclude:
   - "copier.yml"
@@ -115,6 +116,30 @@ otp_version:
   choices:
     - "26"
     - "27"
+
+# ─── Methodology ──────────────────────────────────────────────────────────────
+# KEEL ships a default workflow (S/A/B/C tiers). If your org already has
+# a methodology, set custom_methodology=true to strip KEEL's workflow content
+# and keep only the infrastructure (CI, hooks, Makefile, tool wiring).
+
+custom_methodology:
+  type: bool
+  help: "Use your own methodology? (strips KEEL tiers/workflow from generated files)"
+  default: false
+
+skip_agent_instructions:
+  type: bool
+  help: "Skip generating agent instruction files? (your methodology provides its own)"
+  default: false
+
+branching_model:
+  type: str
+  help: "Branch protection model"
+  default: "simple"
+  choices:
+    - "simple"
+    - "gitflow"
+    - "trunk"
 
 # ─── AI Agent Targets ─────────────────────────────────────────────────────────
 # KEEL generates agent instruction files for each selected target.

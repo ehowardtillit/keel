@@ -1,3 +1,10 @@
+{% if skip_agent_instructions %}
+# {{ project_name }}
+
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+
+Read the methodology's own instruction files for workflow, guardrails, and conventions.
+{% else %}
 ---
 description: "KEEL engineering guardrails and workflow for {{ project_name }}"
 globs:
@@ -21,6 +28,7 @@ alwaysApply: true
 **Language targets:** {{ langs | join(", ") }} (follow CI tooling for each).
 {%- endif %}
 
+{% if not custom_methodology %}
 ## Tiered workflow
 
 | Tier | Meaning | Review |
@@ -32,6 +40,8 @@ alwaysApply: true
 
 All tiers: branch, PR, tests, lint, security. **Conventional commits:** `feat|fix|docs|refactor|test|chore|ci|perf: description`
 
+{% endif %}
+{% if not custom_methodology %}
 ## Guardrails
 
 **NEVER:** Drop DB/schema; delete infra (Makefile, CI, deploy); push to main; skip tests; secrets in code; `allow_origins=["*"]`; destructive SQL without a plan; TODO/FIXME/HACK in commits; ghost code; bare `except`/silenced errors; dependencies without CVE check.
@@ -39,6 +49,7 @@ All tiers: branch, PR, tests, lint, security. **Conventional commits:** `feat|fi
 **ALWAYS:** Tests before and after; update `.github/context/` when architecture/API/modules change; parameterized SQL; delegate heavy work to sub-agents; API-first; OWASP; validate inputs at boundaries; verify imports; functions under 50 lines; match file style; prefer editing existing files.
 
 Full detail: `.github/instructions/guardrails.md`
+{% endif %}
 {%- if mempalace_enabled %}
 
 ## MemPalace
@@ -66,3 +77,5 @@ This project uses **{{ runtime_enforcement }}** for pre-execution guardrails. Do
 | Guardrails and LLM verification | `.github/instructions/guardrails.md` |
 | Prompt patterns | `.github/instructions/prompts.md` |
 | Delegation, API-first, testing | `.github/instructions/processes.md` |
+
+{% endif %}

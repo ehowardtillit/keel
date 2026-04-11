@@ -60,17 +60,99 @@ copier copy gh:ehowardtillit/keel .
 
 ```bash
 copier update
+# or
+make keel-regenerate
 ```
 
 Copier diffs what changed in KEEL since your last apply and merges cleanly. Your customizations are preserved.
 
 ---
 
+## keel.yml -- The Stack Manifest
+
+After setup, your project has a `keel.yml` file. This is the single source of truth for your engineering infrastructure -- like `docker-compose.yml` is for your containers.
+
+```yaml
+# keel.yml
+version: 1
+
+project:
+  name: "My API"
+  owner: "my-org"
+  source_dirs: "src/"
+
+methodology:
+  type: "keel"           # "keel" for built-in tiers, "custom" to bring your own
+  branching: "simple"    # "simple", "gitflow", or "trunk"
+  skip_agent_instructions: false
+
+languages:
+  python:
+    enabled: true
+    version: "3.12"
+  typescript:
+    enabled: true
+
+agents:
+  claude_code: true
+  cursor: true
+  github_copilot: true
+
+stack:
+  memory:
+    mempalace: true
+  workflow:
+    gstack: false
+  enforcement:
+    runtime: "none"
+    merge_gate: "none"
+  security:
+    codeguard: false
+  dependencies:
+    updater: "dependabot"
+
+ci_extra_jobs:
+  - name: "e2e-tests"
+    run: "npx playwright test"
+  - name: "performance"
+    run: "k6 run tests/smoke.js"
+```
+
+Edit `keel.yml`, run `make keel-regenerate`, and KEEL regenerates your CI pipelines, pre-commit hooks, Makefile targets, agent instructions, and tool configs to match.
+
+```bash
+make keel-status       # What's configured
+make keel-validate     # Check config consistency
+make keel-diff         # Preview changes
+make keel-regenerate   # Apply changes
+```
+
+---
+
+## Bring Your Own Methodology
+
+KEEL ships with a default workflow (S/A/B/C tiers). If your organization already has an engineering methodology, set `methodology.type: "custom"`:
+
+```yaml
+methodology:
+  type: "custom"
+  branching: "gitflow"
+  skip_agent_instructions: true   # your methodology provides agent instructions
+```
+
+This strips KEEL's workflow content from all generated files and keeps only the infrastructure: CI pipelines, pre-commit hooks, Makefile targets, tool wiring, context file management. Your methodology provides the workflow, guardrails, and agent instructions.
+
+This is how KEEL works as a foundation layer -- it doesn't compete with your process, it provides the plumbing underneath it.
+
+---
+
 ## What You Configure
 
-KEEL asks these questions during `copier copy`:
+KEEL asks these questions during `copier copy` (and stores them in `keel.yml`):
 
 **Project:** name, GitHub owner, source directories, license
+
+**Methodology:** built-in S/A/B/C tiers or custom (bring your own), branching model (simple/gitflow/trunk), agent instruction generation (on/off)
 
 **Languages:** Python, TypeScript, Go, Rust, PHP, Elixir/Erlang (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and Makefile targets)
 
@@ -83,6 +165,8 @@ KEEL asks these questions during `copier copy`:
 - agent-guardrails or roborev -- merge-time validation
 - CodeGuard -- OWASP security rules for AI agents
 - Dependabot or Renovate -- dependency updates
+
+**CI extensions:** custom pipeline stages beyond KEEL's defaults (contract validation, E2E tests, performance tests, compliance gates)
 
 ---
 

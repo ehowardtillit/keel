@@ -11,7 +11,13 @@ repos:
       - id: check-added-large-files
         args: [--maxkb, "1000"]
       - id: no-commit-to-branch
+{% if branching_model == "gitflow" %}
+        args: [--branch, main, --branch, master, --branch, develop]
+{% elif branching_model == "trunk" %}
         args: [--branch, main, --branch, master]
+{% else %}
+        args: [--branch, main, --branch, master]
+{% endif %}
       - id: trailing-whitespace
       - id: end-of-file-fixer
 

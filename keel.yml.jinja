@@ -1,0 +1,130 @@
+# ⚓ keel.yml -- Engineering Stack Manifest
+# This file declares your project's engineering infrastructure.
+# Edit it, then run: make keel-regenerate
+#
+# Think of this as docker-compose for your engineering process:
+# you declare WHAT you want, KEEL generates the plumbing.
+
+version: 1
+
+# ─── Project ─────────────────────────────────────────────────────────────────
+
+project:
+  name: "{{ project_name }}"
+  owner: "{{ github_owner }}"
+  source_dirs: "{{ source_dirs }}"
+  license: "{{ license }}"
+
+# ─── Methodology ─────────────────────────────────────────────────────────────
+# "keel"   -- use KEEL's built-in S/A/B/C tiered workflow
+# "custom" -- bring your own methodology; KEEL provides only infrastructure
+
+methodology:
+  type: "{% if custom_methodology %}custom{% else %}keel{% endif %}"
+  branching: "{{ branching_model }}"
+  skip_agent_instructions: {{ skip_agent_instructions | lower }}
+
+# ─── Languages ───────────────────────────────────────────────────────────────
+# Enable the languages your project uses. Each one activates:
+#   - CI pipeline jobs (lint, test, security scan)
+#   - Pre-commit hooks (TODO/FIXME blocking, language linters)
+#   - Makefile targets (lint-<lang>, test-<lang>)
+#   - Dependabot/Renovate ecosystem config
+#   - Bootstrap toolchain checks
+
+languages:
+{%- if lang_python %}
+  python:
+    enabled: true
+    version: "{{ python_version }}"
+{%- else %}
+  python:
+    enabled: false
+{%- endif %}
+{%- if lang_typescript %}
+  typescript:
+    enabled: true
+{%- else %}
+  typescript:
+    enabled: false
+{%- endif %}
+{%- if lang_go %}
+  go:
+    enabled: true
+{%- else %}
+  go:
+    enabled: false
+{%- endif %}
+{%- if lang_rust %}
+  rust:
+    enabled: true
+{%- else %}
+  rust:
+    enabled: false
+{%- endif %}
+{%- if lang_php %}
+  php:
+    enabled: true
+    version: "{{ php_version }}"
+{%- else %}
+  php:
+    enabled: false
+{%- endif %}
+{%- if lang_elixir %}
+  elixir:
+    enabled: true
+    version: "{{ elixir_version }}"
+    otp_version: "{{ otp_version }}"
+{%- else %}
+  elixir:
+    enabled: false
+{%- endif %}
+
+# ─── Agents ──────────────────────────────────────────────────────────────────
+# When methodology.skip_agent_instructions is false, KEEL generates
+# instruction files for each enabled agent. When true, your methodology
+# provides its own agent instructions and KEEL skips generation.
+
+agents:
+  claude_code: {{ agent_claude_code | lower }}
+  cursor: {{ agent_cursor | lower }}
+  github_copilot: {{ agent_github_copilot | lower }}
+  codex: {{ agent_codex | lower }}
+
+# ─── Stack ───────────────────────────────────────────────────────────────────
+# Declare which tools to wire. KEEL generates configs, bootstrap steps,
+# Makefile targets, and CI jobs for each enabled tool.
+
+stack:
+  memory:
+    mempalace: {{ mempalace_enabled | lower }}
+
+  workflow:
+    gstack: {{ gstack_enabled | lower }}
+
+  enforcement:
+    runtime: "{{ runtime_enforcement }}"    # none | caliper | agentsteer
+    merge_gate: "{{ merge_gate }}"          # none | agent-guardrails | roborev
+
+  security:
+    codeguard: {{ codeguard_enabled | lower }}
+
+  dependencies:
+    updater: "{{ dependency_updates }}"     # dependabot | renovate | none
+
+# ─── CI Extensions ──────────────────────────────────────────────────────────
+# Add custom CI stages beyond what KEEL generates. Each entry becomes
+# a step in the CI pipeline. Useful for contract validation, E2E tests,
+# performance tests, compliance gates, etc.
+#
+# ci_extra_jobs:
+#   - name: "contract-validation"
+#     run: "npx spectral lint openapi.yml"
+#   - name: "e2e-tests"
+#     run: "npx playwright test"
+#   - name: "performance"
+#     run: "k6 run tests/smoke.js"
+#   - name: "itil-gate"
+#     run: "bash scripts/itil-check.sh"
+
+ci_extra_jobs: []

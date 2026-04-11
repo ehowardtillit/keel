@@ -1,6 +1,6 @@
 # KEEL -- Project Makefile
 
-.PHONY: help bootstrap{% if lang_python %} lint format test test-coverage security-scan{% endif %}{% if lang_typescript %} lint-ts test-ts{% endif %}{% if lang_go %} lint-go test-go{% endif %}{% if lang_rust %} lint-rust test-rust{% endif %}{% if lang_php %} lint-php test-php{% endif %}{% if lang_elixir %} lint-elixir test-elixir{% endif %} lint-all test-all secrets-baseline secrets-audit context-refresh{% if mempalace_enabled %} context-refresh-live memory-status memory-mine{% endif %} hooks-install hooks-run
+.PHONY: help bootstrap{% if lang_python %} lint format test test-coverage security-scan{% endif %}{% if lang_typescript %} lint-ts test-ts{% endif %}{% if lang_go %} lint-go test-go{% endif %}{% if lang_rust %} lint-rust test-rust{% endif %}{% if lang_php %} lint-php test-php{% endif %}{% if lang_elixir %} lint-elixir test-elixir{% endif %} lint-all test-all secrets-baseline secrets-audit context-refresh{% if mempalace_enabled %} context-refresh-live memory-status memory-mine{% endif %} hooks-install hooks-run keel-status keel-validate keel-regenerate keel-diff
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -160,5 +160,19 @@ hooks-install: ## Install pre-commit hooks
 
 hooks-run: ## Run all pre-commit hooks on all files
 	pre-commit run --all-files
+
+# --- KEEL ---
+
+keel-status: ## Show current KEEL stack configuration
+	@./keel status
+
+keel-validate: ## Validate keel.yml against generated files
+	@./keel validate
+
+keel-regenerate: ## Regenerate infrastructure from keel.yml
+	@./keel regenerate
+
+keel-diff: ## Preview what keel-regenerate would change
+	@./keel diff
 
 # --- Customize: add your project targets below ---

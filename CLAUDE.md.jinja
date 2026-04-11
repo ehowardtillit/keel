@@ -1,3 +1,10 @@
+{% if skip_agent_instructions %}
+# {{ project_name }}
+
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+
+Read the methodology's own instruction files for workflow, guardrails, and conventions.
+{% else %}
 # {{ project_name }}
 
 This repository uses the KEEL scaffold (KEEL Enforces Engineering Layouts). Primary source paths: `{{ source_dirs }}`.
@@ -28,6 +35,7 @@ Before substantive work, read:
 
 If the repo has a `docs/README.md` or index, read it once for navigation.
 
+{% if not custom_methodology %}
 ## Tiered workflow (S / A / B / C)
 
 Every change uses a branch, pull request, tests, lint, and security checks. The tier sets ceremony and review, not whether those steps run.
@@ -42,7 +50,8 @@ Every change uses a branch, pull request, tests, lint, and security checks. The 
 Conventional commits: `feat|fix|docs|refactor|test|chore|ci|perf: description`
 
 Full detail: `.github/instructions/workflow.md`
-
+{% endif %}
+{% if not custom_methodology %}
 ## Critical guardrails
 
 **NEVER:** drop a database or apply destructive schema without explicit approval; delete infrastructure files (Makefile, CI, deploy scripts); push directly to `main`; skip tests; store secrets in code or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations; silence errors with bare `except:` or `except: pass`.
@@ -50,6 +59,7 @@ Full detail: `.github/instructions/workflow.md`
 **ALWAYS:** run tests before and after changes; update `.github/context/` when architecture, APIs, or modules change; verify imports resolve; keep functions under 50 lines; prefer editing existing files over adding new ones; match the style of the surrounding code.
 
 Full lists and verification: `.github/instructions/guardrails.md`
+{% endif %}
 {%- if mempalace_enabled %}
 
 ## MemPalace
@@ -85,3 +95,5 @@ CodeGuard (CoSAI OWASP) rules apply to AI-assisted changes.
 | Guardrails and verification | `.github/instructions/guardrails.md` |
 | Prompt patterns | `.github/instructions/prompts.md` |
 | Processes, delegation, testing | `.github/instructions/processes.md` |
+
+{% endif %}

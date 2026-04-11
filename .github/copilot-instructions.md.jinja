@@ -1,3 +1,10 @@
+{% if skip_agent_instructions %}
+# {{ project_name }}
+
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+
+Read the methodology's own instruction files for workflow, guardrails, and conventions.
+{% else %}
 # {{ project_name }} -- Agent Instructions
 
 ## Project Overview
@@ -24,6 +31,7 @@
 
 ---
 
+{% if not custom_methodology %}
 ## Tiered Workflow (S/A/B/C)
 
 All tiers: branch + PR + tests + lint + security. Tier sets the ceremony level.
@@ -40,7 +48,8 @@ Conventional commits required: `feat|fix|docs|refactor|test|chore|ci|perf: descr
 Details, ticket creation, and ceremony steps: `.github/instructions/workflow.md`
 
 ---
-
+{% endif %}
+{% if not custom_methodology %}
 ## Critical Guardrails
 
 ### NEVER
@@ -64,6 +73,7 @@ Details, ticket creation, and ceremony steps: `.github/instructions/workflow.md`
 Full guardrails (NEVER/ALWAYS/LLM-specific + verification protocol): `.github/instructions/guardrails.md`
 
 ---
+{% endif %}
 {% if mempalace_enabled %}
 
 ## MemPalace
@@ -100,3 +110,5 @@ Pre-gather raw data with bash, feed to agents as context.
 | All guardrails + LLM verification protocol | `.github/instructions/guardrails.md` |
 | Prompt patterns (/analyze, /plan, /implement, etc.) | `.github/instructions/prompts.md` |
 | Delegation, orchestration, API-first, testing, docs | `.github/instructions/processes.md` |
+
+{% endif %}

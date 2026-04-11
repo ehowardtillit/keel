@@ -1,3 +1,10 @@
+{% if skip_agent_instructions %}
+# {{ project_name }}
+
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+
+Read the methodology's own instruction files for workflow, guardrails, and conventions.
+{% else %}
 # {{ project_name }}
 
 **Customize:** Replace this with a short description of the product, main components, and how this repository is organized.
@@ -20,6 +27,7 @@ Primary source directories: `{{ source_dirs }}`
 Languages in this project: {{ langs | join(", ") }}.
 {% endif %}
 
+{% if not custom_methodology %}
 ## Tiered workflow (S / A / B / C)
 
 All work: branch, PR, tests, and lint. Tier sets ceremony and who merges.
@@ -33,12 +41,15 @@ All work: branch, PR, tests, and lint. Tier sets ceremony and who merges.
 
 Conventional commits: `feat|fix|docs|refactor|test|chore|ci|perf: description`
 
+{% endif %}
+{% if not custom_methodology %}
 ## Guardrails
 
 **NEVER:** Drop or wipe databases; delete infrastructure (Makefile, CI, deploy scripts); push to `main`; skip tests to save time; store secrets or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations (unwired or untested code).
 
 **ALWAYS:** Run tests before and after changes; update `.github/context/` when architecture or public surface changes; verify every import resolves; keep functions under 50 lines; prefer editing existing files over adding new ones.
 
+{% endif %}
 {% if mempalace_enabled -%}
 ## MemPalace
 
@@ -65,3 +76,5 @@ Merge gate: **{{ merge_gate }}**.
 ## Detailed playbooks
 
 Start with `.github/instructions/workflow.md` (S/A/B/C ceremonies and tickets) and `.github/instructions/guardrails.md` (full NEVER/ALWAYS list). Also `.github/instructions/prompts.md` and `.github/instructions/processes.md`.
+
+{% endif %}
