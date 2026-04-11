@@ -1,0 +1,61 @@
+---
+description: "KEEL engineering guardrails and workflow for {{ project_name }}"
+globs:
+alwaysApply: true
+---
+
+# KEEL: {{ project_name }}
+
+**Read first:** `.github/context/*.md` and `docs/` (ADRs, plans, implementations).
+
+**Source paths (scan/lint):** `{{ source_dirs }}`
+{%- if lang_python or lang_typescript or lang_go or lang_rust %}
+
+**Language targets:**{% if lang_python %} Python{% endif %}{% if lang_typescript %} TypeScript{% endif %}{% if lang_go %} Go{% endif %}{% if lang_rust %} Rust{% endif %} (follow CI tooling for each).
+{%- endif %}
+
+## Tiered workflow
+
+| Tier | Meaning | Review |
+|------|---------|--------|
+| **S** | Schema, security, infra, migrations, auth, deploy | Human |
+| **A** | New feature surface (endpoints, services, integrations) | Human |
+| **B** | Enhancement to existing behavior | Auto-merge if CI green |
+| **C** | Trivial (docs, comments, typos in non-code) | Auto-merge if CI green |
+
+All tiers: branch, PR, tests, lint, security. **Conventional commits:** `feat|fix|docs|refactor|test|chore|ci|perf: description`
+
+## Guardrails
+
+**NEVER:** Drop DB/schema; delete infra (Makefile, CI, deploy); push to main; skip tests; secrets in code; `allow_origins=["*"]`; destructive SQL without a plan; TODO/FIXME/HACK in commits; ghost code; bare `except`/silenced errors; dependencies without CVE check.
+
+**ALWAYS:** Tests before and after; update `.github/context/` when architecture/API/modules change; parameterized SQL; delegate heavy work to sub-agents; API-first; OWASP; validate inputs at boundaries; verify imports; functions under 50 lines; match file style; prefer editing existing files.
+
+Full detail: `.github/instructions/guardrails.md`
+{%- if mempalace_enabled %}
+
+## MemPalace
+
+Query MemPalace (MCP) before large or ambiguous work; record durable facts, decisions, and module boundaries the project expects you to maintain.
+{%- endif %}
+{%- if gstack_enabled %}
+
+## gstack
+
+Use gstack sprint flow where applicable: `/office-hours`, `/review`, `/ship` (see project documentation).
+{%- endif %}
+{%- if runtime_enforcement != "none" %}
+
+## Runtime enforcement
+
+This project uses **{{ runtime_enforcement }}** for pre-execution guardrails. Do not bypass or disable it without explicit owner approval.
+{%- endif %}
+
+## `.github/instructions/`
+
+| Topic | File |
+|-------|------|
+| Tiers, tickets, ceremonies | `.github/instructions/workflow.md` |
+| Guardrails and LLM verification | `.github/instructions/guardrails.md` |
+| Prompt patterns | `.github/instructions/prompts.md` |
+| Delegation, API-first, testing | `.github/instructions/processes.md` |

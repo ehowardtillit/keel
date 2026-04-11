@@ -4,7 +4,7 @@
 
 - ALL tiers run tests, lint, and security checks
 - Tier determines human ceremony level
-- Agent auto-classifies tier from the diff; user can override with explicit tier mention
+- AI agent auto-classifies tier from the diff; user can override with explicit tier mention
 
 ### Tier S: Schema / Security / Infra
 

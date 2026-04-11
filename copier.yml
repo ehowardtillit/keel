@@ -1,9 +1,13 @@
 # ⚓ KEEL -- Copier Template Configuration
+# KEEL Enforces Engineering Layouts
 # https://copier.readthedocs.io/
 
 _min_copier_version: "9.0.0"
 _subdirectory: ""
 _templates_suffix: .jinja
+
+_tasks:
+  - "chmod +x bootstrap.sh"
 
 _exclude:
   - "copier.yml"
@@ -12,10 +16,9 @@ _exclude:
   - ".github/ISSUE_TEMPLATE/bug.yml"
   - ".github/ISSUE_TEMPLATE/feature.yml"
   - ".github/ISSUE_TEMPLATE/config.yml"
-  - "README.md"
-  - "LICENSE"
+  - "LICENSE-FAQ.md"
 
-# --- Questions ---
+# ─── Project Basics ───────────────────────────────────────────────────────────
 
 project_name:
   type: str
@@ -27,15 +30,6 @@ github_owner:
   help: "GitHub username or org (for CODEOWNERS)"
   default: "your-github-username"
 
-python_version:
-  type: str
-  help: "Python version for CI"
-  default: "3.11"
-  choices:
-    - "3.11"
-    - "3.12"
-    - "3.13"
-
 source_dirs:
   type: str
   help: "Space-separated source directories (for linting/scanning)"
@@ -43,9 +37,119 @@ source_dirs:
 
 license:
   type: str
-  help: "License type"
-  default: "AGPL-3.0"
+  help: "License for YOUR project (KEEL itself is AGPL-3.0)"
+  default: "MIT"
   choices:
-    - "AGPL-3.0"
     - "MIT"
     - "Apache-2.0"
+    - "AGPL-3.0"
+
+# ─── Languages ────────────────────────────────────────────────────────────────
+
+lang_python:
+  type: bool
+  help: "Python support (ruff, bandit, pytest, pip-audit)"
+  default: true
+
+python_version:
+  type: str
+  help: "Python version for CI"
+  default: "3.12"
+  when: "{{ lang_python }}"
+  choices:
+    - "3.11"
+    - "3.12"
+    - "3.13"
+
+lang_typescript:
+  type: bool
+  help: "TypeScript support (eslint, vitest)"
+  default: false
+
+lang_go:
+  type: bool
+  help: "Go support (golangci-lint, go test)"
+  default: false
+
+lang_rust:
+  type: bool
+  help: "Rust support (clippy, cargo test)"
+  default: false
+
+# ─── AI Agent Targets ─────────────────────────────────────────────────────────
+# KEEL generates agent instruction files for each selected target.
+# Each agent reads only its own file -- safe to enable all.
+
+agent_claude_code:
+  type: bool
+  help: "Generate CLAUDE.md (Claude Code / Claude CLI)"
+  default: true
+
+agent_cursor:
+  type: bool
+  help: "Generate .cursor/rules/keel.mdc (Cursor)"
+  default: true
+
+agent_github_copilot:
+  type: bool
+  help: "Generate .github/copilot-instructions.md (GitHub Copilot)"
+  default: true
+
+agent_codex:
+  type: bool
+  help: "Generate AGENTS.md (OpenAI Codex CLI)"
+  default: false
+
+# ─── Memory Layer ─────────────────────────────────────────────────────────────
+
+mempalace_enabled:
+  type: bool
+  help: "MemPalace integration (local semantic memory + knowledge graph via MCP)"
+  default: false
+
+# ─── Workflow Tools ───────────────────────────────────────────────────────────
+
+gstack_enabled:
+  type: bool
+  help: "gstack integration (sprint workflow -- /office-hours, /review, /ship)"
+  default: false
+
+# ─── Runtime Enforcement ──────────────────────────────────────────────────────
+
+runtime_enforcement:
+  type: str
+  help: "Runtime guardrails (block dangerous actions before execution)"
+  default: "none"
+  choices:
+    - "none"
+    - "caliper"
+    - "agentsteer"
+
+# ─── Merge Gates ──────────────────────────────────────────────────────────────
+
+merge_gate:
+  type: str
+  help: "Additional merge-time validation beyond KEEL's CI"
+  default: "none"
+  choices:
+    - "none"
+    - "agent-guardrails"
+    - "roborev"
+
+# ─── Security Rules ──────────────────────────────────────────────────────────
+
+codeguard_enabled:
+  type: bool
+  help: "Project CodeGuard (CoSAI OWASP security rules for AI agents)"
+  default: false
+
+# ─── Dependency Updates ──────────────────────────────────────────────────────
+
+dependency_updates:
+  type: str
+  help: "Dependency update automation"
+  default: "dependabot"
+  choices:
+    - "dependabot"
+    - "renovate"
+    - "none"

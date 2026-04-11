@@ -1,3 +1,4 @@
+{% raw %}
 name: PR Validation
 
 on:
@@ -14,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Check PR Title (Conventional Commits)
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -32,6 +35,21 @@ jobs:
             exit 1
           fi
           echo "✅ PR description OK"
+{% endraw %}
+{% if gstack_enabled %}
+      - name: Tier-tool guidance
+        run: |
+          S_PATTERNS="migrations|middleware|deploy|\.env|security|auth|infra|schema|docker"
+{% raw %}
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed.txt 2>/dev/null || true
+{% endraw %}
+          if grep -qiE "$S_PATTERNS" /tmp/changed.txt 2>/dev/null; then
+            echo "Tier S detected -- run /office-hours and /plan-ceo-review before implementing"
+          else
+            echo "Standard change -- run /review before merging"
+          fi
+{% endif %}
+{% raw %}
 
   tier-detection:
     name: Detect Change Tier
@@ -50,3 +68,4 @@ jobs:
           else
             echo "✅ Standard change"
           fi
+{% endraw %}

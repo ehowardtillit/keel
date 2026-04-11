@@ -18,7 +18,7 @@ Quick-start commands to trigger specific workflows:
 ### /implement: Build from a plan
 1. Read the plan doc (and analysis doc if Tier S)
 2. Create branch: `git checkout -b feat/<ticket>-<description>`
-3. Implement with sub-agents
+3. Implement (delegate to sub-tasks when available)
 4. Write tests (unit + integration as appropriate)
 5. Run linting and tests
 6. **Write implementation record:** `docs/implementations/NNN-<title>.md` -- what was built, files changed, decisions made during implementation, lessons learned

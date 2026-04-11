@@ -23,7 +23,7 @@ Hard blocks. Violating any of these requires explicit user override:
 - ALWAYS run existing tests before AND after changes
 - ALWAYS update `.github/context/` files if your changes affect architecture, API surface, or module structure (last step of every task)
 - ALWAYS use parameterized SQL -- never f-strings for WHERE/SET clauses
-- ALWAYS delegate to sub-agents -- main thread is for reporting, deciding, and delegating
+- ALWAYS delegate implementation to sub-tasks when available -- main thread is for reporting, deciding, and delegating
 - ALWAYS use API-first approach -- build API endpoints first, UI comes after with mock data
 - ALWAYS follow OWASP Top 10 best practices
 - ALWAYS validate user input at the router level (Pydantic models)

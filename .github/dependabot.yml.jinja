@@ -1,0 +1,49 @@
+{% if dependency_updates == "dependabot" %}
+version: 2
+updates:
+{% if lang_python %}
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+{% endif %}
+{% if lang_typescript %}
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+{% endif %}
+{% if lang_go %}
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+{% endif %}
+{% if lang_rust %}
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+{% endif %}
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "deps"
+{% else %}
+# Dependency updates managed by {{ dependency_updates }} -- see renovate.json or manual process
+{% endif %}

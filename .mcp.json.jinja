@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+{%- if mempalace_enabled %}
+    "mempalace": {
+      "command": "mempalace",
+      "args": ["mcp"]
+    }{% if merge_gate == "agent-guardrails" %},{% endif %}
+{%- endif %}
+{%- if merge_gate == "agent-guardrails" %}
+    "agent-guardrails": {
+      "command": "npx",
+      "args": ["agent-guardrails", "serve"]
+    }
+{%- endif %}
+  }
+}

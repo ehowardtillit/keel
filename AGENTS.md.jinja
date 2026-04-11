@@ -1,0 +1,60 @@
+# {{ project_name }}
+
+**Customize:** Replace this with a short description of the product, main components, and how this repository is organized.
+
+## Read first
+
+- `.github/context/*.md` — architecture, API surface, module map, conventions, recent changes
+- `docs/` — decisions (`docs/decisions/`), plans, implementation notes
+
+Primary source directories: `{{ source_dirs }}`
+
+{% if lang_python or lang_typescript or lang_go or lang_rust -%}
+Languages in this project: {% if lang_python %}Python{% endif %}{% if lang_typescript %}{% if lang_python %}, {% endif %}TypeScript{% endif %}{% if lang_go %}{% if lang_python or lang_typescript %}, {% endif %}Go{% endif %}{% if lang_rust %}{% if lang_python or lang_typescript or lang_go %}, {% endif %}Rust{% endif %}.
+{% endif %}
+
+## Tiered workflow (S / A / B / C)
+
+All work: branch, PR, tests, and lint. Tier sets ceremony and who merges.
+
+| Tier | Scope | Flow | Review |
+|------|-------|------|--------|
+| **S** | Schema, security, infra, auth, deploy | Full ceremony | Human review |
+| **A** | Features (new capability, API, integration) | Issue + PR | Human review |
+| **B** | Enhancements to existing behavior | PR | Auto-merge if CI green |
+| **C** | Trivial (docs, typos, comments) | PR | Auto-merge if CI green |
+
+Conventional commits: `feat|fix|docs|refactor|test|chore|ci|perf: description`
+
+## Guardrails
+
+**NEVER:** Drop or wipe databases; delete infrastructure (Makefile, CI, deploy scripts); push to `main`; skip tests to save time; store secrets or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations (unwired or untested code).
+
+**ALWAYS:** Run tests before and after changes; update `.github/context/` when architecture or public surface changes; verify every import resolves; keep functions under 50 lines; prefer editing existing files over adding new ones.
+
+{% if mempalace_enabled -%}
+## MemPalace
+
+MemPalace MCP is available. Query `mempalace_search` before making assumptions about past decisions.
+
+{% endif %}
+{% if gstack_enabled -%}
+## gstack
+
+gstack skills are available for sprint workflow.
+
+{% endif %}
+{% if runtime_enforcement != "none" or merge_gate != "none" %}
+## Project enforcement
+
+{% if runtime_enforcement != "none" %}
+Runtime guardrails: **{{ runtime_enforcement }}**.
+{% endif %}
+{% if merge_gate != "none" %}
+Merge gate: **{{ merge_gate }}**.
+{% endif %}
+{% endif %}
+
+## Detailed playbooks
+
+Start with `.github/instructions/workflow.md` (S/A/B/C ceremonies and tickets) and `.github/instructions/guardrails.md` (full NEVER/ALWAYS list). Also `.github/instructions/prompts.md` and `.github/instructions/processes.md`.

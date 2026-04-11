@@ -1,0 +1,124 @@
+# KEEL -- Pre-commit hooks for mechanical guardrail enforcement
+{% if codeguard_enabled and lang_python %}
+# CodeGuard security rules loaded -- bandit/semgrep reduced to avoid duplication
+{% endif %}
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb, "1000"]
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+{% if lang_python %}
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.6
+    hooks:
+      - id: ruff
+        args: [--fix, --ignore, E501,F401]
+      - id: ruff-format
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.9.4"
+    hooks:
+      # Customize: restrict to your source directories
+      - id: bandit
+        args: [-ll, --skip, B101, -r]
+{% if codeguard_enabled %}
+        # Note: CodeGuard also runs security rules in CI; tune bandit paths to avoid overlap.
+{% endif %}
+
+{% if not codeguard_enabled %}
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.155.0
+    hooks:
+      - id: semgrep
+        args: [--config, auto, --error, --skip-unknown-extensions]
+{% endif %}
+{% endif %}
+
+{% if lang_python or lang_typescript or lang_go or lang_rust %}
+  - repo: local
+    hooks:
+{% if lang_python %}
+      - id: no-todo-fixme
+        name: no-todo-fixme (python)
+        language: system
+        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [python]
+
+      - id: no-silenced-exceptions
+        name: no-silenced-exceptions
+        language: system
+        entry: bash -c 'if grep -nHE "except[[:space:]]*:|except[[:space:]]+BaseException[[:space:]]*:" -- "$@"; then echo "❌ Bare except or except BaseException — do not silence exceptions"; exit 1; fi' --
+        types: [python]
+
+      - id: no-pass-except
+        name: no-pass-except
+        language: system
+        entry: python3
+        args:
+          - -c
+          - |
+            import ast
+            import sys
+
+            for path in sys.argv[1:]:
+                with open(path, encoding="utf-8") as f:
+                    src = f.read()
+                try:
+                    tree = ast.parse(src, filename=path)
+                except SyntaxError:
+                    continue
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ExceptHandler):
+                        if (
+                            len(node.body) == 1
+                            and isinstance(node.body[0], ast.Pass)
+                        ):
+                            print(
+                                f"❌ {path}:{node.lineno}: except block contains only pass",
+                                file=sys.stderr,
+                            )
+                            sys.exit(1)
+        types: [python]
+{% endif %}
+{% if lang_typescript %}
+      - id: no-todo-fixme-ts
+        name: no-todo-fixme (typescript)
+        language: system
+        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [ts, tsx]
+
+      - id: no-console-log
+        name: no-console-log
+        language: system
+        entry: bash -c 'if grep -nHE "console\.log" -- "$@"; then echo "❌ console.log left in code — remove before committing"; exit 1; fi' --
+        types: [ts, tsx]
+{% endif %}
+{% if lang_go %}
+      - id: no-todo-fixme-go
+        name: no-todo-fixme (go)
+        language: system
+        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [go]
+{% endif %}
+{% if lang_rust %}
+      - id: no-todo-fixme-rust
+        name: no-todo-fixme (rust)
+        language: system
+        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [rust]
+{% endif %}
+{% endif %}

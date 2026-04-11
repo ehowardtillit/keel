@@ -8,19 +8,30 @@
 git clone <your-repo-url>
 cd {{ project_name | lower | replace(' ', '-') }}
 ./bootstrap.sh
-source .venv/bin/activate
-```
+{% if lang_python %}source .venv/bin/activate
+{% endif %}```
 
 ## Development
 
 ```bash
 make help              # Show all targets
-make lint              # Lint with ruff
-make test              # Run tests
+{% if lang_python %}make lint              # Lint Python with ruff
+make test              # Run Python tests
 make test-coverage     # Tests + coverage report
 make security-scan     # Bandit scan
+{% endif %}{% if lang_typescript %}make lint-ts           # Lint TypeScript
+make test-ts           # Run TypeScript tests
+{% endif %}{% if lang_go %}make lint-go           # Lint Go
+make test-go           # Run Go tests
+{% endif %}{% if lang_rust %}make lint-rust          # Lint Rust
+make test-rust         # Run Rust tests
+{% endif %}make lint-all          # Run all linters
+make test-all          # Run all tests
+make context-refresh   # Update AI context files
 make hooks-run         # Run all pre-commit hooks
-```
+{% if mempalace_enabled %}make memory-status     # MemPalace status
+make context-refresh-live  # Sync MemPalace to context files
+{% endif %}```
 
 ## Project Structure
 
@@ -29,16 +40,29 @@ make hooks-run         # Run all pre-commit hooks
 ├── {{ source_dirs }}                # Source code
 ├── tests/                           # Test suite
 ├── .github/
-│   ├── copilot-instructions.md      # AI agent playbook
-│   ├── instructions/                # Detailed workflow docs
+│   ├── instructions/                # Workflow playbooks
 │   ├── context/                     # AI agent context files
 │   └── workflows/                   # CI/CD pipelines
-├── docs/                            # Documentation
-├── Makefile                         # Build targets
+├── docs/                            # Documentation (analysis, decisions, plans, implementations)
+{% if lang_python %}├── .pre-commit-config.yaml          # Mechanical guardrails
+{% endif %}├── Makefile                         # Build targets
 ├── bootstrap.sh                     # One-time setup
 └── CONTRIBUTING.md                  # How to contribute
 ```
 
+## Workflow
+
+This project uses the KEEL tiered workflow. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+| Tier | Scope | Review |
+|------|-------|--------|
+| **S** | Schema, security, infra | Human required |
+| **A** | New features | Human required |
+| **B** | Enhancements | Auto-merge if CI green |
+| **C** | Docs, typos | Auto-merge if CI green |
+{% if gstack_enabled %}
+Use `/review` before PRs and `/ship` to land changes.
+{% endif %}
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).

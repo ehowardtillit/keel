@@ -1,0 +1,80 @@
+# {{ project_name }}
+
+This repository uses the KEEL scaffold (KEEL Enforces Engineering Layouts). Primary source paths: `{{ source_dirs }}`.
+{% if lang_python or lang_typescript or lang_go or lang_rust %}
+
+**Languages:** {% if lang_python %}Python {{ python_version }}{% endif %}{% if lang_typescript %}{% if lang_python %}, {% endif %}TypeScript{% endif %}{% if lang_go %}{% if lang_python or lang_typescript %}, {% endif %}Go{% endif %}{% if lang_rust %}{% if lang_python or lang_typescript or lang_go %}, {% endif %}Rust{% endif %}
+{% endif %}
+
+> **Customize:** Replace the overview above with your project description, goals, and how pieces fit together.
+
+This file stays short so sessions stay cheap to load. Use `.github/instructions/` for full procedures and examples.
+
+## Context: read first
+
+Before substantive work, read:
+
+- `.github/context/*.md` (for example `ARCHITECTURE.md`, `API_SURFACE.md`, `MODULE_MAP.md`, `CONVENTIONS.md`, `CHANGELOG_RECENT.md`)
+- `docs/decisions/` (ADRs)
+- `docs/plans/` (intended work)
+- `docs/implementations/` (what was built)
+
+If the repo has a `docs/README.md` or index, read it once for navigation.
+
+## Tiered workflow (S / A / B / C)
+
+Every change uses a branch, pull request, tests, lint, and security checks. The tier sets ceremony and review, not whether those steps run.
+
+| Tier | Scope | Ceremony | Review |
+|------|-------|----------|--------|
+| **S** | Schema, security, infrastructure | Highest; human review | Human required |
+| **A** | New features, integrations | High; human review | Human required |
+| **B** | Enhancements to existing behavior | Medium | Auto-merge if green |
+| **C** | Trivial (docs, typos, comments) | Low | Auto-merge if green |
+
+Conventional commits: `feat|fix|docs|refactor|test|chore|ci|perf: description`
+
+Full detail: `.github/instructions/workflow.md`
+
+## Critical guardrails
+
+**NEVER:** drop a database or apply destructive schema without explicit approval; delete infrastructure files (Makefile, CI, deploy scripts); push directly to `main`; skip tests; store secrets in code or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations; silence errors with bare `except:` or `except: pass`.
+
+**ALWAYS:** run tests before and after changes; update `.github/context/` when architecture, APIs, or modules change; verify imports resolve; keep functions under 50 lines; prefer editing existing files over adding new ones; match the style of the surrounding code.
+
+Full lists and verification: `.github/instructions/guardrails.md`
+{%- if mempalace_enabled %}
+
+## MemPalace
+
+On wake-up, call `mempalace_status`. Before responding about any person, project, or past event, call `mempalace_search` or `mempalace_kg_query` first. After each session, call `mempalace_diary_write`.
+{%- endif %}
+{%- if gstack_enabled %}
+
+## gstack
+
+gstack skills are available. Use `/review` before opening PRs and `/ship` to land changes. See gstack `SKILL.md` files for details.
+{%- endif %}
+{%- if runtime_enforcement == "caliper" %}
+
+## Caliper
+
+Caliper stop hooks are active. Convention violations are caught after every agent turn.
+{%- endif %}
+{%- if merge_gate != "none" %}
+
+Merge gate: `{{ merge_gate }}` (see CI configuration).
+{%- endif %}
+{%- if codeguard_enabled %}
+
+CodeGuard (CoSAI OWASP) rules apply to AI-assisted changes.
+{%- endif %}
+
+## Detailed instructions
+
+| Topic | File |
+|-------|------|
+| Workflows, tickets, ceremonies | `.github/instructions/workflow.md` |
+| Guardrails and verification | `.github/instructions/guardrails.md` |
+| Prompt patterns | `.github/instructions/prompts.md` |
+| Processes, delegation, testing | `.github/instructions/processes.md` |

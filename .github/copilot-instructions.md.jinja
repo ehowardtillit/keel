@@ -1,4 +1,4 @@
-# Copilot Instructions: {{ project_name }}
+# {{ project_name }} -- Agent Instructions
 
 ## Project Overview
 
@@ -64,19 +64,31 @@ Details, ticket creation, and ceremony steps: `.github/instructions/workflow.md`
 Full guardrails (NEVER/ALWAYS/LLM-specific + verification protocol): `.github/instructions/guardrails.md`
 
 ---
+{% if mempalace_enabled %}
+
+## MemPalace
+
+On wake-up, call `mempalace_status`. Before responding about any person, project, or past event, call `mempalace_search` or `mempalace_kg_query` first. After each session, call `mempalace_diary_write`.
+{% endif %}
+{% if gstack_enabled %}
+
+## gstack
+
+gstack skills are available. Use `/review` before opening PRs and `/ship` to land changes. See gstack `SKILL.md` files for details.
+{% endif %}
 
 ## Delegation
 
-Main thread is for reporting, deciding, and delegating. Delegate implementation to sub-agents.
+Main conversation thread is for reporting, discussing, deciding, and delegating. Delegate implementation to sub-tasks when your AI agent supports it. Different agents have different delegation models:
 
-| Agent | Use for | Parallel |
-|-------|---------|----------|
-| explore | Codebase questions, file searches | Yes |
-| task | Builds, tests, lints | No |
-| general-purpose | Complex multi-step implementation | No |
-| code-review | Reviewing changes | Yes |
+| Agent | How to delegate |
+|-------|----------------|
+| Claude Code | Use the Task tool for complex multi-step work |
+| Cursor | Use explore, task, and general-purpose sub-agents |
+| Codex | Use AGENTS.md-based orchestration |
+| Other | Follow your agent's delegation patterns |
 
-Max 3 concurrent agents.
+Pre-gather raw data with bash, feed to agents as context.
 
 ---
 

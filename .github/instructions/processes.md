@@ -3,16 +3,16 @@
 ## Delegation Rules
 
 - Main conversation thread is for reporting, discussing, deciding, and delegating
-- ALWAYS delegate implementation to sub-agents:
+- Delegate implementation to sub-tasks when your agent supports it
+- Different agents have different delegation models:
 
-| Agent Type | Use For | Parallelizable |
-|------------|---------|----------------|
-| `explore` | Codebase questions, file searches | Yes |
-| `task` | Builds, tests, lints | No |
-| `general-purpose` | Complex multi-step implementation | No |
-| `code-review` | Reviewing changes | Yes |
+| Agent | How to delegate |
+|-------|----------------|
+| Claude Code | Use the Task tool for complex multi-step work |
+| Cursor | Use explore, task, and general-purpose sub-agents |
+| Codex | Use AGENTS.md-based orchestration |
+| Other | Follow your agent's delegation patterns |
 
-- Max 3 concurrent agents to avoid rate limits
 - Pre-gather raw data with bash, feed to agents as context
 
 ---

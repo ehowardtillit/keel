@@ -11,74 +11,6 @@ permissions:
   security-events: write
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '{{ python_version }}'
-      - run: pip install ruff==0.15.6
-      - name: Ruff lint
-        run: ruff check {{ source_dirs }} --ignore E501,F401 --exclude "*/venv/*,*/.venv/*"
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '{{ python_version }}'
-      - run: pip install bandit==1.9.4
-      - name: Bandit scan
-        run: bandit -r {{ source_dirs }} -ll --skip B101 -f txt
-
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-    steps:
-      - uses: actions/checkout@v6
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: python
-      - uses: github/codeql-action/analyze@v3
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '{{ python_version }}'
-      - name: Install dependencies
-        run: |
-          [ -f requirements.txt ] && pip install -r requirements.txt || true
-          pip install pytest pytest-cov pip-audit
-      - name: Run tests
-        run: |
-          if [ -d tests ]; then
-            pytest tests/ -v --tb=short --cov --cov-report=term-missing
-          else
-            echo "⚠️ No tests/ directory found -- skipping"
-          fi
-
-  dependency-audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '{{ python_version }}'
-      - run: pip install pip-audit
-      - name: Audit dependencies
-        run: '[ -f requirements.txt ] && pip-audit -r requirements.txt --desc || echo "No requirements.txt found -- skipping audit"'
-
   context-staleness:
     name: Context File Freshness
     runs-on: ubuntu-latest
@@ -101,3 +33,180 @@ jobs:
               fi
             fi
           done
+
+{% if lang_python %}
+  lint-python:
+    name: Lint (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - run: pip install ruff==0.15.6
+      - name: Ruff lint
+        run: ruff check {{ source_dirs }} --ignore E501,F401 --exclude "*/venv/*,*/.venv/*"
+
+  security-scan-python:
+    name: Security Scan (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - run: pip install bandit==1.9.4
+      - name: Bandit scan
+        run: bandit -r {{ source_dirs }} -ll --skip B101 -f txt
+
+  test-python:
+    name: Test (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - name: Install dependencies
+        run: |
+          [ -f requirements.txt ] && pip install -r requirements.txt || true
+          pip install pytest pytest-cov
+      - name: Run tests
+        run: |
+          if [ -d tests ]; then
+            pytest tests/ -v --tb=short --cov --cov-report=term-missing
+          else
+            echo "⚠️ No tests/ directory found -- skipping"
+          fi
+
+  dependency-audit-python:
+    name: Dependency Audit (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '{{ python_version }}'
+      - run: pip install pip-audit
+      - name: Audit dependencies
+        run: '[ -f requirements.txt ] && pip-audit -r requirements.txt --desc || echo "No requirements.txt found -- skipping audit"'
+
+  codeql-python:
+    name: CodeQL (Python)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@v3
+
+{% endif %}
+{% if lang_typescript %}
+  lint-typescript:
+    name: Lint (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: ESLint
+        run: npx eslint . --max-warnings 0
+
+  test-typescript:
+    name: Test (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Vitest
+        run: npx vitest run
+
+  codeql-typescript:
+    name: CodeQL (JavaScript/TypeScript)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+      - uses: github/codeql-action/analyze@v3
+
+{% endif %}
+{% if lang_go %}
+  lint-go:
+    name: Lint (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  test-go:
+    name: Test (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - name: Go test
+        run: go test ./...
+
+  codeql-go:
+    name: CodeQL (Go)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: go
+      - uses: github/codeql-action/analyze@v3
+
+{% endif %}
+{% if lang_rust %}
+  lint-rust:
+    name: Lint (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  test-rust:
+    name: Test (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cargo test
+        run: cargo test
+
+{% endif %}
+{% if mempalace_enabled %}
+  context-sync:
+    name: MemPalace Context Sync
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Sync palace
+        run: mempalace mine . --wing "{{ project_name }}"
+
+{% endif %}

@@ -1,0 +1,174 @@
+# Contributing to {{ project_name }}
+
+## Getting started
+
+Run the project bootstrap once from the repository root:
+
+```bash
+./bootstrap.sh
+```
+
+Manual setup (if you prefer not to use the script):
+
+{% if lang_python %}
+- **Python:** `python3 -m venv .venv`, activate it, then `pip install -U pip` and install project dependencies (see `requirements.txt` / `pyproject.toml`). Target Python **{{ python_version }}** to match CI.
+{% endif %}
+{% if lang_typescript %}
+- **TypeScript:** install Node.js, then `npm install` (or your package manager) so `eslint` and `vitest` are available.
+{% endif %}
+{% if lang_go %}
+- **Go:** `go mod download` and install `golangci-lint` for local linting.
+{% endif %}
+{% if lang_rust %}
+- **Rust:** `cargo build` (add `clippy` via `rustup component add clippy` for linting).
+{% endif %}
+
+## Common commands
+
+Run `make help` for the full target list. Typical targets:
+
+- `make bootstrap` — first-time setup (`./bootstrap.sh`)
+{% if lang_python %}- `make lint` — Python (ruff) under `{{ source_dirs }}`
+{% endif %}
+{% if lang_typescript %}- `make lint-ts` — TypeScript (ESLint)
+{% endif %}
+{% if lang_go %}- `make lint-go` — Go (golangci-lint)
+{% endif %}
+{% if lang_rust %}- `make lint-rust` — Rust (Clippy)
+{% endif %}
+- `make lint-all` — all enabled language linters
+- `make test-all` — all enabled test suites
+- `make context-refresh` — regenerate `.github/context/` summaries
+{% if mempalace_enabled %}- `make context-refresh-live` / `make memory-status` — MemPalace integration (see below)
+{% endif %}
+- `make hooks-install` / `make hooks-run` — install or run pre-commit on all files
+
+## Development workflow (tier S / A / B / C)
+
+Every change goes through a branch and PR. **Tier** sets how much ceremony is required.
+
+| Tier | What triggers it | Ceremony | Review |
+|------|------------------|----------|--------|
+| **S** | Schema, security, infra, auth, deploy | Issue → analysis doc → ADR → PR | Human required |
+| **A** | New endpoint, service, model, integration | Issue → PR | Human required |
+| **B** | Enhancement, refactor, logging, filters | PR | Auto-merge if CI is green |
+| **C** | Docs, comments, typos, log text | PR | Auto-merge if CI is green |
+
+**Always:** pre-commit and CI run; conventional commits; no direct pushes to the default branch. Tier is usually inferred from the diff; override in the PR if needed.
+
+## Branching policy
+
+- **`main`** is protected — use pull requests, not direct pushes.
+- Use prefixes such as `feat/`, `fix/`, `chore/`, and `docs/` with a short description (for example `feat/auth-rate-limit`).
+
+## Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `perf`, followed by a concise description.
+
+If a commit was written with substantial help from an AI assistant, include a trailer so attribution is clear, for example:
+
+```
+Co-authored-by: Name <email@example.com>
+```
+
+## Pre-commit hooks
+
+Hooks run on every commit (install with `make hooks-install` or `pre-commit install`).
+
+- **General:** YAML/JSON checks, large-file guard, branch protection (`main`/`master`), trailing whitespace, end-of-file fixer, `detect-secrets` against `.secrets.baseline`.
+{% if lang_python %}
+- **Python:** `ruff` (lint + format), `bandit`, and (where configured) Semgrep for security patterns.
+{% endif %}
+{% if lang_typescript %}
+- **TypeScript:** blocks `TODO`/`FIXME`/similar markers and stray `console.log` in TS/TSX.
+{% endif %}
+{% if lang_go or lang_rust %}
+- **Go / Rust:** blocks `TODO`/`FIXME`/similar markers in source files.
+{% endif %}
+{% if lang_python %}
+- **Python (local guards):** no bare `except` / `except: pass` patterns that silence errors.
+{% endif %}
+
+Run everything locally with `pre-commit run --all-files` or `make hooks-run`.
+
+## AI-generated code
+
+Treat generated code like any other contribution: it must be complete, wired, and reviewed.
+
+- No `TODO` / `FIXME` / `HACK` / `PLACEHOLDER` left to “finish later.”
+- No ghost implementations (unused or untested functions).
+- No phantom imports — every import must resolve.
+- No stubbed or hallucinated APIs, endpoints, or config keys.
+- Prefer small, readable units: **keep functions under 50 lines**; split when needed.
+- Match existing project patterns (structure, naming, error handling).
+
+**Quick verification before you push:** imports resolve, tests cover real behavior, and you ran the linters/tests for the languages you touched.
+
+{% if mempalace_enabled %}
+## MemPalace
+
+Project context is stored in MemPalace. Check status with `make memory-status` and sync live context with `make context-refresh-live` when you need agents to see the latest state.
+{% endif %}
+
+{% if gstack_enabled %}
+## gstack workflow
+
+Use **`/review`** before opening a pull request, and **`/ship`** when you are ready to land changes through the gstack flow.
+{% endif %}
+
+## Testing
+
+{% if lang_python %}
+- **Python:** `make test` or `pytest` as configured under `tests/`.
+{% endif %}
+{% if lang_typescript %}
+- **TypeScript:** `make test-ts` (Vitest).
+{% endif %}
+{% if lang_go %}
+- **Go:** `make test-go` or `go test ./...`.
+{% endif %}
+{% if lang_rust %}
+- **Rust:** `make test-rust` or `cargo test`.
+{% endif %}
+{% if not (lang_python or lang_typescript or lang_go or lang_rust) %}
+Add tests appropriate to your stack and wire them into `make test-all` when you introduce tooling.
+{% endif %}
+
+## Code style
+
+{% if lang_python %}
+- **Python:** Ruff for format and lint; type hints on public APIs; follow patterns in `.github/context/CONVENTIONS.md` when present.
+{% endif %}
+{% if lang_typescript %}
+- **TypeScript:** ESLint defaults for this repo; keep components and modules consistent with existing layout.
+{% endif %}
+{% if lang_go %}
+- **Go:** `golangci-lint` and standard `gofmt`-style formatting.
+{% endif %}
+{% if lang_rust %}
+- **Rust:** `rustfmt` and Clippy; follow module layout already in the crate.
+{% endif %}
+
+## Pull request checklist
+
+Use [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) when opening a PR. It captures tier, testing notes, context updates, and stack verification.
+
+## Architecture decisions (Tier S)
+
+Tier **S** changes (schema, security, infrastructure) need an analysis pass and an ADR **before** implementation. Copy `docs/decisions/000-template.md` to a new numbered file and record the decision there.
+
+## Versioning
+
+This project follows **semantic versioning**. The canonical version lives in the `VERSION` file at the repo root; bump it when you release, tag the commit (`vMAJOR.MINOR.PATCH`), and keep changelog or release notes in line with user-visible changes.
+
+{% if runtime_enforcement != "none" %}
+## Runtime guardrails
+
+This repository is configured with **{% if runtime_enforcement == "caliper" %}Caliper{% elif runtime_enforcement == "agentsteer" %}AgentSteer{% else %}{{ runtime_enforcement }}{% endif %}** for runtime enforcement. Follow project docs for how guardrails are applied in your environment.
+{% endif %}
+
+{% if merge_gate != "none" %}
+## Merge gates
+
+Additional merge validation is enabled: **{{ merge_gate }}**. Expect these checks to run alongside CI before a change can merge.
+{% endif %}

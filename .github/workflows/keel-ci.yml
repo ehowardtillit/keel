@@ -43,6 +43,10 @@ jobs:
             "VERSION"
             "LICENSE"
             "README.md"
+            "CLAUDE.md"
+            "AGENTS.md"
+            ".cursor/rules/keel.mdc"
+            ".mcp.json"
           )
           MISSING=0
           for f in "${EXPECTED_FILES[@]}"; do
@@ -126,17 +130,17 @@ jobs:
           REQUIRED_FILES=(
             "copier.yml"
             "VERSION"
-            "bootstrap.sh"
+            "bootstrap.sh.jinja"
             "README.md"
-            "CONTRIBUTING.md"
+            "CONTRIBUTING.md.jinja"
             "LICENSE"
             "LICENSE.jinja"
+            "LICENSE-FAQ.md"
             "README.md.jinja"
-            ".pre-commit-config.yaml"
+            ".pre-commit-config.yaml.jinja"
             ".github/workflows/ci.yml.jinja"
-            ".github/workflows/pr-validation.yml"
+            ".github/workflows/pr-validation.yml.jinja"
             ".github/PULL_REQUEST_TEMPLATE.md"
-            ".github/dependabot.yml"
             ".github/copilot-instructions.md.jinja"
             ".github/instructions/workflow.md"
             ".github/instructions/guardrails.md"
@@ -144,6 +148,10 @@ jobs:
             ".github/instructions/processes.md"
             ".github/CODEOWNERS.jinja"
             "Makefile.jinja"
+            "CLAUDE.md.jinja"
+            "AGENTS.md.jinja"
+            ".cursor/rules/keel.mdc.jinja"
+            ".mcp.json.jinja"
           )
           MISSING=0
           for f in "${REQUIRED_FILES[@]}"; do
