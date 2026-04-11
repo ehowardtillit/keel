@@ -76,6 +76,46 @@ lang_rust:
   help: "Rust support (clippy, cargo test)"
   default: false
 
+lang_php:
+  type: bool
+  help: "PHP support (phpcs, phpunit, composer audit)"
+  default: false
+
+php_version:
+  type: str
+  help: "PHP version for CI"
+  default: "8.3"
+  when: "{{ lang_php }}"
+  choices:
+    - "8.1"
+    - "8.2"
+    - "8.3"
+    - "8.4"
+
+lang_elixir:
+  type: bool
+  help: "Elixir support (credo, mix test, sobelow)"
+  default: false
+
+elixir_version:
+  type: str
+  help: "Elixir version for CI"
+  default: "1.17"
+  when: "{{ lang_elixir }}"
+  choices:
+    - "1.16"
+    - "1.17"
+    - "1.18"
+
+otp_version:
+  type: str
+  help: "Erlang/OTP version for CI"
+  default: "27"
+  when: "{{ lang_elixir }}"
+  choices:
+    - "26"
+    - "27"
+
 # ─── AI Agent Targets ─────────────────────────────────────────────────────────
 # KEEL generates agent instruction files for each selected target.
 # Each agent reads only its own file -- safe to enable all.

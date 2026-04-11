@@ -105,6 +105,51 @@ echo ""
 
 {% endif %}
 
+{% if lang_php %}
+# --- PHP --------------------------------------------------------------------
+
+if ! command -v php &>/dev/null; then
+  fail "php not found. Install PHP or disable lang_php in KEEL."
+fi
+ok "PHP found ($(php -v | head -1 | awk '{print $2}'))"
+
+if ! command -v composer &>/dev/null; then
+  warn "Composer not found. Install from https://getcomposer.org/"
+else
+  ok "Composer found"
+  if [[ -f composer.json ]]; then
+    info "Installing PHP dependencies..."
+    composer install --no-progress --no-suggest 2>/dev/null || warn "composer install had issues"
+  fi
+fi
+info "KEEL expects phpcs and phpunit available via Composer (require-dev)."
+echo ""
+
+{% endif %}
+
+{% if lang_elixir %}
+# --- Elixir / Erlang --------------------------------------------------------
+
+if ! command -v elixir &>/dev/null; then
+  fail "elixir not found. Install Elixir (https://elixir-lang.org/install.html) or disable lang_elixir in KEEL."
+fi
+ok "Elixir found ($(elixir --version | tail -1 | awk '{print $2}'))"
+
+if ! command -v mix &>/dev/null; then
+  fail "mix not found. Install Elixir properly."
+fi
+
+info "Fetching Elixir dependencies..."
+mix local.hex --force >/dev/null 2>&1
+mix local.rebar --force >/dev/null 2>&1
+if [[ -f mix.exs ]]; then
+  mix deps.get >/dev/null 2>&1 || warn "mix deps.get had issues"
+fi
+info "KEEL expects credo and sobelow as dev deps in mix.exs."
+echo ""
+
+{% endif %}
+
 # --- Pre-commit hooks -------------------------------------------------------
 
 if ! command -v pre-commit &>/dev/null; then

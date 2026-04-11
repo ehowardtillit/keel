@@ -72,7 +72,7 @@ KEEL asks these questions during `copier copy`:
 
 **Project:** name, GitHub owner, source directories, license
 
-**Languages:** Python, TypeScript, Go, Rust (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and Makefile targets)
+**Languages:** Python, TypeScript, Go, Rust, PHP, Elixir/Erlang (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and Makefile targets)
 
 **Agent targets:** Claude Code (CLAUDE.md), Cursor (.cursor/rules/keel.mdc), GitHub Copilot (copilot-instructions.md), OpenAI Codex (AGENTS.md) -- all generated from the same guardrails, each in its native format
 
@@ -159,10 +159,12 @@ If gstack is configured, KEEL maps tiers to gstack skills: Tier S triggers `/off
 | **eslint** | Lint errors | TypeScript (via project config) |
 | **golangci-lint** | Lint errors | Go (via project config) |
 | **clippy** | Lint errors | Rust (via project config) |
+| **phpcs** | PSR-12 violations | PHP (via project config) |
+| **credo** | Style and consistency | Elixir (via project config) |
 
 ### CI (GitHub Actions, every push/PR)
 
-Jobs are generated per language. Python gets ruff + bandit + pytest + pip-audit + CodeQL. TypeScript gets eslint + vitest + CodeQL. Go gets golangci-lint + go test + CodeQL. Rust gets clippy + cargo test.
+Jobs are generated per language. Python gets ruff + bandit + pytest + pip-audit + CodeQL. TypeScript gets eslint + vitest + CodeQL. Go gets golangci-lint + go test + CodeQL. Rust gets clippy + cargo test. PHP gets phpcs + phpunit + composer audit. Elixir gets credo + mix test + sobelow + deps.audit.
 
 Context staleness checks warn when `.github/context/` files are >30 days old. If MemPalace is enabled, a context-sync job keeps the palace current on merges to main.
 

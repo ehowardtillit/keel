@@ -199,6 +199,95 @@ jobs:
         run: cargo test
 
 {% endif %}
+{% if lang_php %}
+  lint-php:
+    name: Lint (PHP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '{{ php_version }}'
+          tools: phpcs, phpunit
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest
+      - name: PHP_CodeSniffer
+        run: vendor/bin/phpcs --standard=PSR12 {{ source_dirs }}
+
+  test-php:
+    name: Test (PHP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '{{ php_version }}'
+          tools: phpunit
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+  dependency-audit-php:
+    name: Dependency Audit (PHP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '{{ php_version }}'
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest
+      - name: Composer audit
+        run: composer audit
+
+{% endif %}
+{% if lang_elixir %}
+  lint-elixir:
+    name: Lint (Elixir)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '{{ elixir_version }}'
+          otp-version: '{{ otp_version }}'
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Credo
+        run: mix credo --strict
+
+  test-elixir:
+    name: Test (Elixir)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '{{ elixir_version }}'
+          otp-version: '{{ otp_version }}'
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Mix test
+        run: mix test
+
+  security-scan-elixir:
+    name: Security Scan (Elixir)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '{{ elixir_version }}'
+          otp-version: '{{ otp_version }}'
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Sobelow
+        run: mix sobelow --config
+      - name: Deps audit
+        run: mix deps.audit
+
+{% endif %}
 {% if mempalace_enabled %}
   context-sync:
     name: MemPalace Context Sync

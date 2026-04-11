@@ -1,10 +1,17 @@
 # {{ project_name }}
 
 This repository uses the KEEL scaffold (KEEL Enforces Engineering Layouts). Primary source paths: `{{ source_dirs }}`.
-{% if lang_python or lang_typescript or lang_go or lang_rust %}
+{%- set langs = [] -%}
+{%- if lang_python %}{% set _ = langs.append("Python " + python_version) %}{% endif -%}
+{%- if lang_typescript %}{% set _ = langs.append("TypeScript") %}{% endif -%}
+{%- if lang_go %}{% set _ = langs.append("Go") %}{% endif -%}
+{%- if lang_rust %}{% set _ = langs.append("Rust") %}{% endif -%}
+{%- if lang_php %}{% set _ = langs.append("PHP " + php_version) %}{% endif -%}
+{%- if lang_elixir %}{% set _ = langs.append("Elixir " + elixir_version + " / OTP " + otp_version) %}{% endif -%}
+{%- if langs %}
 
-**Languages:** {% if lang_python %}Python {{ python_version }}{% endif %}{% if lang_typescript %}{% if lang_python %}, {% endif %}TypeScript{% endif %}{% if lang_go %}{% if lang_python or lang_typescript %}, {% endif %}Go{% endif %}{% if lang_rust %}{% if lang_python or lang_typescript or lang_go %}, {% endif %}Rust{% endif %}
-{% endif %}
+**Languages:** {{ langs | join(", ") }}
+{%- endif %}
 
 > **Customize:** Replace the overview above with your project description, goals, and how pieces fit together.
 

@@ -9,8 +9,15 @@
 
 Primary source directories: `{{ source_dirs }}`
 
-{% if lang_python or lang_typescript or lang_go or lang_rust -%}
-Languages in this project: {% if lang_python %}Python{% endif %}{% if lang_typescript %}{% if lang_python %}, {% endif %}TypeScript{% endif %}{% if lang_go %}{% if lang_python or lang_typescript %}, {% endif %}Go{% endif %}{% if lang_rust %}{% if lang_python or lang_typescript or lang_go %}, {% endif %}Rust{% endif %}.
+{%- set langs = [] -%}
+{%- if lang_python %}{% set _ = langs.append("Python") %}{% endif -%}
+{%- if lang_typescript %}{% set _ = langs.append("TypeScript") %}{% endif -%}
+{%- if lang_go %}{% set _ = langs.append("Go") %}{% endif -%}
+{%- if lang_rust %}{% set _ = langs.append("Rust") %}{% endif -%}
+{%- if lang_php %}{% set _ = langs.append("PHP") %}{% endif -%}
+{%- if lang_elixir %}{% set _ = langs.append("Elixir") %}{% endif -%}
+{%- if langs %}
+Languages in this project: {{ langs | join(", ") }}.
 {% endif %}
 
 ## Tiered workflow (S / A / B / C)

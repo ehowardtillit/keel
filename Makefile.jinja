@@ -1,6 +1,6 @@
 # KEEL -- Project Makefile
 
-.PHONY: help bootstrap{% if lang_python %} lint format test test-coverage security-scan{% endif %}{% if lang_typescript %} lint-ts test-ts{% endif %}{% if lang_go %} lint-go test-go{% endif %}{% if lang_rust %} lint-rust test-rust{% endif %} lint-all test-all secrets-baseline secrets-audit context-refresh{% if mempalace_enabled %} context-refresh-live memory-status memory-mine{% endif %} hooks-install hooks-run
+.PHONY: help bootstrap{% if lang_python %} lint format test test-coverage security-scan{% endif %}{% if lang_typescript %} lint-ts test-ts{% endif %}{% if lang_go %} lint-go test-go{% endif %}{% if lang_rust %} lint-rust test-rust{% endif %}{% if lang_php %} lint-php test-php{% endif %}{% if lang_elixir %} lint-elixir test-elixir{% endif %} lint-all test-all secrets-baseline secrets-audit context-refresh{% if mempalace_enabled %} context-refresh-live memory-status memory-mine{% endif %} hooks-install hooks-run
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -53,16 +53,32 @@ test-rust: ## Run Rust tests
 	cargo test
 
 {% endif %}
-{% if lang_python or lang_typescript or lang_go or lang_rust %}
-lint-all:{% if lang_python %} lint{% endif %}{% if lang_typescript %} lint-ts{% endif %}{% if lang_go %} lint-go{% endif %}{% if lang_rust %} lint-rust{% endif %} ## Run all enabled linters
+{% if lang_php %}
+lint-php: ## Lint PHP with PHP_CodeSniffer
+	vendor/bin/phpcs --standard=PSR12 {{ source_dirs }}
+
+test-php: ## Run PHP tests with PHPUnit
+	vendor/bin/phpunit
+
+{% endif %}
+{% if lang_elixir %}
+lint-elixir: ## Lint Elixir with Credo
+	mix credo --strict
+
+test-elixir: ## Run Elixir tests
+	mix test
+
+{% endif %}
+{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir %}
+lint-all:{% if lang_python %} lint{% endif %}{% if lang_typescript %} lint-ts{% endif %}{% if lang_go %} lint-go{% endif %}{% if lang_rust %} lint-rust{% endif %}{% if lang_php %} lint-php{% endif %}{% if lang_elixir %} lint-elixir{% endif %} ## Run all enabled linters
 
 {% else %}
 lint-all: ## Run all enabled linters
 	@echo "No language linters enabled"
 
 {% endif %}
-{% if lang_python or lang_typescript or lang_go or lang_rust %}
-test-all:{% if lang_python %} test{% endif %}{% if lang_typescript %} test-ts{% endif %}{% if lang_go %} test-go{% endif %}{% if lang_rust %} test-rust{% endif %} ## Run all enabled test suites
+{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir %}
+test-all:{% if lang_python %} test{% endif %}{% if lang_typescript %} test-ts{% endif %}{% if lang_go %} test-go{% endif %}{% if lang_rust %} test-rust{% endif %}{% if lang_php %} test-php{% endif %}{% if lang_elixir %} test-elixir{% endif %} ## Run all enabled test suites
 
 {% else %}
 test-all: ## Run all enabled test suites

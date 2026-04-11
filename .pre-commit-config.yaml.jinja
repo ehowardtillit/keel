@@ -48,7 +48,7 @@ repos:
 {% endif %}
 {% endif %}
 
-{% if lang_python or lang_typescript or lang_go or lang_rust %}
+{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir %}
   - repo: local
     hooks:
 {% if lang_python %}
@@ -120,5 +120,19 @@ repos:
         language: system
         entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types: [rust]
+{% endif %}
+{% if lang_php %}
+      - id: no-todo-fixme-php
+        name: no-todo-fixme (php)
+        language: system
+        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [php]
+{% endif %}
+{% if lang_elixir %}
+      - id: no-todo-fixme-elixir
+        name: no-todo-fixme (elixir)
+        language: system
+        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types_or: [elixir]
 {% endif %}
 {% endif %}

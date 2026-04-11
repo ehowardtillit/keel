@@ -25,6 +25,10 @@ make test-ts           # Run TypeScript tests
 make test-go           # Run Go tests
 {% endif %}{% if lang_rust %}make lint-rust          # Lint Rust
 make test-rust         # Run Rust tests
+{% endif %}{% if lang_php %}make lint-php          # Lint PHP
+make test-php          # Run PHP tests
+{% endif %}{% if lang_elixir %}make lint-elixir        # Lint Elixir
+make test-elixir       # Run Elixir tests
 {% endif %}make lint-all          # Run all linters
 make test-all          # Run all tests
 make context-refresh   # Update AI context files

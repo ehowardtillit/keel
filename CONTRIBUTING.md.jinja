@@ -22,6 +22,12 @@ Manual setup (if you prefer not to use the script):
 {% if lang_rust %}
 - **Rust:** `cargo build` (add `clippy` via `rustup component add clippy` for linting).
 {% endif %}
+{% if lang_php %}
+- **PHP:** install PHP and Composer, then `composer install` so `phpcs` and `phpunit` are available.
+{% endif %}
+{% if lang_elixir %}
+- **Elixir:** install Elixir/Erlang, then `mix deps.get`. Add `credo` and `sobelow` to your `mix.exs` dev deps.
+{% endif %}
 
 ## Common commands
 
@@ -35,6 +41,10 @@ Run `make help` for the full target list. Typical targets:
 {% if lang_go %}- `make lint-go` — Go (golangci-lint)
 {% endif %}
 {% if lang_rust %}- `make lint-rust` — Rust (Clippy)
+{% endif %}
+{% if lang_php %}- `make lint-php` — PHP (PHP_CodeSniffer)
+{% endif %}
+{% if lang_elixir %}- `make lint-elixir` — Elixir (Credo)
 {% endif %}
 - `make lint-all` — all enabled language linters
 - `make test-all` — all enabled test suites
@@ -82,8 +92,8 @@ Hooks run on every commit (install with `make hooks-install` or `pre-commit inst
 {% if lang_typescript %}
 - **TypeScript:** blocks `TODO`/`FIXME`/similar markers and stray `console.log` in TS/TSX.
 {% endif %}
-{% if lang_go or lang_rust %}
-- **Go / Rust:** blocks `TODO`/`FIXME`/similar markers in source files.
+{% if lang_go or lang_rust or lang_php or lang_elixir %}
+- **Go / Rust / PHP / Elixir:** blocks `TODO`/`FIXME`/similar markers in source files.
 {% endif %}
 {% if lang_python %}
 - **Python (local guards):** no bare `except` / `except: pass` patterns that silence errors.
@@ -130,7 +140,13 @@ Use **`/review`** before opening a pull request, and **`/ship`** when you are re
 {% if lang_rust %}
 - **Rust:** `make test-rust` or `cargo test`.
 {% endif %}
-{% if not (lang_python or lang_typescript or lang_go or lang_rust) %}
+{% if lang_php %}
+- **PHP:** `make test-php` or `vendor/bin/phpunit`.
+{% endif %}
+{% if lang_elixir %}
+- **Elixir:** `make test-elixir` or `mix test`.
+{% endif %}
+{% if not (lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir) %}
 Add tests appropriate to your stack and wire them into `make test-all` when you introduce tooling.
 {% endif %}
 
@@ -147,6 +163,12 @@ Add tests appropriate to your stack and wire them into `make test-all` when you 
 {% endif %}
 {% if lang_rust %}
 - **Rust:** `rustfmt` and Clippy; follow module layout already in the crate.
+{% endif %}
+{% if lang_php %}
+- **PHP:** PSR-12 via `phpcs`; follow existing namespace and directory conventions.
+{% endif %}
+{% if lang_elixir %}
+- **Elixir:** `mix format` for formatting; `mix credo` for style; follow OTP/Phoenix conventions.
 {% endif %}
 
 ## Pull request checklist
