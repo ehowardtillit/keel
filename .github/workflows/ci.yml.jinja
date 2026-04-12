@@ -1,3 +1,4 @@
+{% if ci_platform == "github" %}
 name: CI
 
 on:
@@ -390,6 +391,111 @@ jobs:
         run: mvn org.owasp:dependency-check-maven:check -q
 
 {% endif %}
+{%- if lang_csharp %}
+  lint-csharp:
+    name: Lint (C#/.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '{{ dotnet_version }}'
+      - name: Restore
+        run: dotnet restore
+      - name: Format check
+        run: dotnet format --verify-no-changes
+
+  test-csharp:
+    name: Test (C#/.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '{{ dotnet_version }}'
+      - name: Restore
+        run: dotnet restore
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+
+  security-scan-csharp:
+    name: Security Scan (C#/.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '{{ dotnet_version }}'
+      - name: Restore
+        run: dotnet restore
+      - name: Vulnerability check
+        run: dotnet list package --vulnerable --include-transitive
+
+  codeql-csharp:
+    name: CodeQL (C#)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        with:
+          languages: csharp
+      - uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+
+{% endif %}
+{%- if lang_ruby %}
+  lint-ruby:
+    name: Lint (Ruby)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1.229.0
+        with:
+          ruby-version: '{{ ruby_version }}'
+          bundler-cache: true
+      - name: RuboCop
+        run: bundle exec rubocop
+
+  test-ruby:
+    name: Test (Ruby)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1.229.0
+        with:
+          ruby-version: '{{ ruby_version }}'
+          bundler-cache: true
+      - name: RSpec
+        run: bundle exec rspec
+
+  security-scan-ruby:
+    name: Security Scan (Ruby)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1.229.0
+        with:
+          ruby-version: '{{ ruby_version }}'
+          bundler-cache: true
+      - name: Bundler Audit
+        run: bundle exec bundler-audit check --update
+      - name: Brakeman
+        run: bundle exec brakeman --no-pager || true
+
+  codeql-ruby:
+    name: CodeQL (Ruby)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        with:
+          languages: ruby
+      - uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+
+{% endif %}
 {% if mempalace_enabled %}
   context-sync:
     name: MemPalace Context Sync
@@ -410,3 +516,4 @@ jobs:
   # Add your custom CI jobs below this line.
   # When using batten.yml, these are auto-generated from ci_extra_jobs.
   # When using Copier directly, add them manually here after generation.
+{% endif %}

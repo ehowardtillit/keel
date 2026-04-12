@@ -89,6 +89,22 @@ languages:
     enabled: true
     version: "{{ java_version }}"
 {%- endif %}
+{%- if lang_csharp %}
+  csharp:
+    enabled: true
+    version: "{{ dotnet_version }}"
+{%- else %}
+  csharp:
+    enabled: false
+{%- endif %}
+{%- if lang_ruby %}
+  ruby:
+    enabled: true
+    version: "{{ ruby_version }}"
+{%- else %}
+  ruby:
+    enabled: false
+{%- endif %}
 
 # ─── Agents ──────────────────────────────────────────────────────────────────
 # When methodology.skip_agent_instructions is false, Batten generates
@@ -121,6 +137,11 @@ stack:
 
   dependencies:
     updater: "{{ dependency_updates }}"     # dependabot | renovate | none
+
+# ─── CI ──────────────────────────────────────────────────────────────────────
+
+ci:
+  platform: "{{ ci_platform }}"   # github | gitlab | circleci
 
 # ─── CI Extensions ──────────────────────────────────────────────────────────
 # Add custom CI stages beyond what Batten generates. Each entry becomes

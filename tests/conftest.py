@@ -27,8 +27,12 @@ def _copier_copy(target_dir, **overrides):
         "lang_php": "false",
         "lang_elixir": "false",
         "lang_java": "false",
+        "lang_csharp": "false",
+        "lang_ruby": "false",
         "python_version": "3.12",
         "java_version": "21",
+        "dotnet_version": "8.0",
+        "ruby_version": "3.3",
         "custom_methodology": "false",
         "skip_agent_instructions": "false",
         "branching_model": "simple",
@@ -42,9 +46,10 @@ def _copier_copy(target_dir, **overrides):
         "merge_gate": "none",
         "codeguard_enabled": "false",
         "dependency_updates": "dependabot",
+        "ci_platform": "github",
     }
     defaults.update(overrides)
-    cmd = ["copier", "copy", "--trust", "--force", BATTEN_ROOT, str(target_dir)]
+    cmd = ["copier", "copy", "--trust", "--force", "--vcs-ref=HEAD", BATTEN_ROOT, str(target_dir)]
     for k, v in defaults.items():
         cmd += ["-d", f"{k}={v}"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)

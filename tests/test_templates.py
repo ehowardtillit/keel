@@ -7,14 +7,13 @@ import os
 import re
 import pytest
 
-JINJA_ARTIFACT_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}")
+JINJA_ARTIFACT_RE = re.compile(r"(?<!\$)\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}")
 
 
 def _assert_no_jinja_artifacts(path):
     content = path.read_text()
     matches = JINJA_ARTIFACT_RE.findall(content)
-    real_artifacts = [m for m in matches if "${{" not in m.replace(" ", "")]
-    assert not real_artifacts, f"Jinja artifacts in {path}: {real_artifacts}"
+    assert not matches, f"Jinja artifacts in {path}: {matches}"
 
 
 def _assert_valid_yaml(path):
@@ -81,6 +80,34 @@ class TestJavaOnly:
         assert "java" in content.lower()
 
 
+class TestCsharpOnly:
+    def test_ci_has_csharp_jobs(self, render):
+        out = render(lang_csharp="true")
+        ci = out / ".github" / "workflows" / "ci.yml"
+        content = ci.read_text()
+        assert "C#" in content or "csharp" in content.lower()
+        assert "dotnet" in content
+
+    def test_pre_commit_has_csharp_hook(self, render):
+        out = render(lang_csharp="true")
+        content = (out / ".pre-commit-config.yaml").read_text()
+        assert "csharp" in content.lower()
+
+
+class TestRubyOnly:
+    def test_ci_has_ruby_jobs(self, render):
+        out = render(lang_ruby="true")
+        ci = out / ".github" / "workflows" / "ci.yml"
+        content = ci.read_text()
+        assert "Ruby" in content
+        assert "rubocop" in content.lower() or "rspec" in content.lower() or "bundler" in content.lower()
+
+    def test_pre_commit_has_ruby_hook(self, render):
+        out = render(lang_ruby="true")
+        content = (out / ".pre-commit-config.yaml").read_text()
+        assert "ruby" in content.lower()
+
+
 class TestMultiLanguage:
     def test_ci_has_all_enabled(self, render):
         out = render(lang_python="true", lang_typescript="true", lang_go="true")
@@ -99,33 +126,27 @@ class TestMultiLanguage:
 
 
 class TestAllLanguages:
+    ALL_LANGS = dict(
+        lang_python="true", lang_typescript="true", lang_go="true",
+        lang_rust="true", lang_php="true", lang_elixir="true",
+        lang_java="true", lang_csharp="true", lang_ruby="true",
+    )
+
     def test_ci_has_all_jobs(self, render):
-        out = render(
-            lang_python="true", lang_typescript="true", lang_go="true",
-            lang_rust="true", lang_php="true", lang_elixir="true",
-            lang_java="true",
-        )
+        out = render(**self.ALL_LANGS)
         content = (out / ".github" / "workflows" / "ci.yml").read_text()
-        for lang in ["Python", "TypeScript", "Go", "Rust", "PHP", "Elixir", "Java"]:
+        for lang in ["Python", "TypeScript", "Go", "Rust", "PHP", "Elixir", "Java", "C#", "Ruby"]:
             assert lang in content, f"Missing {lang} in CI"
 
     def test_no_jinja_artifacts(self, render):
-        out = render(
-            lang_python="true", lang_typescript="true", lang_go="true",
-            lang_rust="true", lang_php="true", lang_elixir="true",
-            lang_java="true",
-        )
+        out = render(**self.ALL_LANGS)
         for f in (out / ".github" / "workflows").glob("*.yml"):
             _assert_no_jinja_artifacts(f)
         _assert_no_jinja_artifacts(out / ".pre-commit-config.yaml")
         _assert_no_jinja_artifacts(out / "CONTRIBUTING.md")
 
     def test_valid_yaml_all(self, render):
-        out = render(
-            lang_python="true", lang_typescript="true", lang_go="true",
-            lang_rust="true", lang_php="true", lang_elixir="true",
-            lang_java="true",
-        )
+        out = render(**self.ALL_LANGS)
         _assert_valid_yaml(out / ".github" / "workflows" / "ci.yml")
         _assert_valid_yaml(out / ".pre-commit-config.yaml")
 

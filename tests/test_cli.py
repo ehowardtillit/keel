@@ -174,3 +174,32 @@ class TestEnabledLangs:
     def test_none(self):
         data = {"languages": {}}
         assert CLI["_enabled_langs"](data) == []
+
+    def test_csharp(self):
+        data = {"languages": {"csharp": {"enabled": True}}}
+        assert CLI["_enabled_langs"](data) == ["csharp"]
+
+    def test_ruby(self):
+        data = {"languages": {"ruby": {"enabled": True}}}
+        assert CLI["_enabled_langs"](data) == ["ruby"]
+
+
+class TestSanitizeSlug:
+    def test_simple(self):
+        assert CLI["_sanitize_slug"]("my job") == "my-job"
+
+    def test_special_chars(self):
+        assert CLI["_sanitize_slug"]("E2E Tests!") == "e2e-tests"
+
+    def test_already_slug(self):
+        assert CLI["_sanitize_slug"]("lint-python") == "lint-python"
+
+
+class TestBuildFindNameExprNewLangs:
+    def test_csharp(self):
+        result = CLI["_build_find_name_expr"](["csharp"])
+        assert "*.cs" in result
+
+    def test_ruby(self):
+        result = CLI["_build_find_name_expr"](["ruby"])
+        assert "*.rb" in result

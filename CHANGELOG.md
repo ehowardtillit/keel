@@ -2,6 +2,29 @@
 
 All notable changes to Batten are documented here.
 
+## [0.1.5] - 2026-04-12
+
+### Added
+- C#/.NET language support (dotnet format, dotnet test, vulnerability check, CodeQL)
+- Ruby language support (rubocop, rspec, bundler-audit, brakeman, CodeQL)
+- GitLab CI pipeline template (`.gitlab-ci.yml`) -- set `ci.platform: "gitlab"`
+- CircleCI pipeline template (`.circleci/config.yml`) -- set `ci.platform: "circleci"`
+- `ci.platform` config option in `batten.yml` (github, gitlab, circleci)
+- `./batten doctor` command -- checks that required tools are installed per config
+- Bootstrap sections for C#/.NET and Ruby toolchains
+
+### Changed
+- `_write_ci_custom` now uses proper YAML serialization (PyYAML when available, JSON fallback)
+- Custom CI job generation supports all three CI platforms
+- CONTRIBUTING.md pre-commit hooks section dynamically lists only enabled languages
+- Jinja artifact test regex uses negative lookbehind for GitHub Actions `${{ }}` expressions
+- Test conftest uses `--vcs-ref=HEAD` for reliable template rendering
+- ARCHITECTURE.md filled with real project architecture documentation
+- README updated: 9 languages, CI platform docs, `doctor` command
+
+### Removed
+- Dead `LANG_GLOBS` dict from CLI (replaced by `_build_find_name_expr`)
+
 ## [0.1.4] - 2026-04-12
 
 ### Changed
