@@ -150,6 +150,40 @@ echo ""
 
 {% endif %}
 
+{% if lang_csharp %}
+# --- C# / .NET --------------------------------------------------------------
+
+if ! command -v dotnet &>/dev/null; then
+  fail "dotnet not found. Install .NET SDK or disable lang_csharp in Batten."
+fi
+ok ".NET SDK found ($(dotnet --version))"
+info "Batten expects dotnet format and dotnet test to work out of the box."
+echo ""
+
+{% endif %}
+
+{% if lang_ruby %}
+# --- Ruby -------------------------------------------------------------------
+
+if ! command -v ruby &>/dev/null; then
+  fail "ruby not found. Install Ruby or disable lang_ruby in Batten."
+fi
+ok "Ruby found ($(ruby --version | awk '{print $2}'))"
+
+if ! command -v bundle &>/dev/null; then
+  warn "Bundler not found. Install with: gem install bundler"
+else
+  ok "Bundler found"
+  if [[ -f Gemfile ]]; then
+    info "Installing Ruby dependencies..."
+    bundle install --quiet 2>/dev/null || warn "bundle install had issues"
+  fi
+fi
+info "Batten expects rubocop and rspec available via Bundler."
+echo ""
+
+{% endif %}
+
 # --- Pre-commit hooks -------------------------------------------------------
 
 if ! command -v pre-commit &>/dev/null; then

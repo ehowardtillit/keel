@@ -31,6 +31,12 @@ Manual setup (if you prefer not to use the script):
 {% if lang_java %}
 - **Java/Kotlin:** install JDK **{{ java_version }}** and Maven, then `mvn compile` to verify the build.
 {% endif %}
+{% if lang_csharp %}
+- **C#/.NET:** install .NET SDK **{{ dotnet_version }}**, then `dotnet restore` and `dotnet build` to verify.
+{% endif %}
+{% if lang_ruby %}
+- **Ruby:** install Ruby **{{ ruby_version }}**, then `bundle install` so `rubocop` and `rspec` are available.
+{% endif %}
 
 ## Common commands
 
@@ -96,8 +102,8 @@ Hooks run on every commit (install with `./batten hooks install` or `pre-commit 
 {% if lang_typescript %}
 - **TypeScript:** blocks `TODO`/`FIXME`/similar markers and stray `console.log` in TS/TSX.
 {% endif %}
-{% if lang_go or lang_rust or lang_php or lang_elixir %}
-- **Go / Rust / PHP / Elixir:** blocks `TODO`/`FIXME`/similar markers in source files.
+{% if lang_go or lang_rust or lang_php or lang_elixir or lang_csharp or lang_ruby %}
+- **{{ [lang_go and "Go", lang_rust and "Rust", lang_php and "PHP", lang_elixir and "Elixir", lang_csharp and "C#", lang_ruby and "Ruby"] | select | join(" / ") }}:** blocks `TODO`/`FIXME`/similar markers in source files.
 {% endif %}
 {% if lang_python %}
 - **Python (local guards):** no bare `except` / `except: pass` patterns that silence errors.
@@ -156,7 +162,13 @@ Use **`/review`** before opening a pull request, and **`/ship`** when you are re
 {% if lang_java %}
 - **Java/Kotlin:** `./batten test --lang java` or `mvn test`.
 {% endif %}
-{% if not (lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java) %}
+{% if lang_csharp %}
+- **C#/.NET:** `./batten test --lang csharp` or `dotnet test`.
+{% endif %}
+{% if lang_ruby %}
+- **Ruby:** `./batten test --lang ruby` or `bundle exec rspec`.
+{% endif %}
+{% if not (lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java or lang_csharp or lang_ruby) %}
 Add tests appropriate to your stack. The `./batten test` command picks up all enabled languages automatically.
 {% endif %}
 
@@ -182,6 +194,12 @@ Add tests appropriate to your stack. The `./batten test` command picks up all en
 {% endif %}
 {% if lang_java %}
 - **Java/Kotlin:** Checkstyle for style; follow existing package and directory conventions.
+{% endif %}
+{% if lang_csharp %}
+- **C#/.NET:** `dotnet format` for style; follow existing namespace and project conventions.
+{% endif %}
+{% if lang_ruby %}
+- **Ruby:** RuboCop for style; follow existing gem and module conventions.
 {% endif %}
 
 ## Pull request checklist

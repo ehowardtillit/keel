@@ -3,7 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/ehowardtillit/batten?style=flat-square&color=blue)](https://github.com/ehowardtillit/batten/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/ehowardtillit/batten/batten-ci.yml?branch=master&style=flat-square&label=CI)](https://github.com/ehowardtillit/batten/actions/workflows/batten-ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square)](LICENSE)
-[![Languages](https://img.shields.io/badge/languages-7-orange?style=flat-square)](#what-you-configure)
+[![Languages](https://img.shields.io/badge/languages-9-orange?style=flat-square)](#what-you-configure)
 [![Agents](https://img.shields.io/badge/agents-Claude%20%C2%B7%20Cursor%20%C2%B7%20Copilot%20%C2%B7%20Codex-purple?style=flat-square)](#what-you-configure)
 [![Built with Copier](https://img.shields.io/badge/built%20with-Copier-lightgrey?style=flat-square)](https://copier.readthedocs.io/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
@@ -81,6 +81,9 @@ languages:
   typescript:
     enabled: true
 
+ci:
+  platform: "github"          # "github", "gitlab", or "circleci"
+
 agents:
   claude_code: true
   cursor: true
@@ -117,6 +120,7 @@ Edit it, then:
 The CLI is also the day-to-day interface:
 
 ```bash
+./batten doctor              # check that required tools are installed
 ./batten lint                # all linters (or --lang python)
 ./batten lint -- --fix       # pass flags through
 ./batten test                # all tests (or --lang go)
@@ -132,7 +136,11 @@ The CLI is also the day-to-day interface:
 
 ## Languages
 
-Python, TypeScript, Go, Rust, PHP, Elixir/Erlang, Java/Kotlin. Enable any combination. Each one activates language-specific CI jobs, pre-commit hooks, formatters, and security scanners.
+Python, TypeScript, Go, Rust, PHP, Elixir/Erlang, Java/Kotlin, C#/.NET, Ruby. Enable any combination. Each one activates language-specific CI jobs, pre-commit hooks, formatters, and security scanners.
+
+## CI Platforms
+
+GitHub Actions (default), GitLab CI, CircleCI. Set `ci.platform` in `batten.yml` and Batten generates the pipeline for your platform.
 
 ## Agents
 
@@ -178,7 +186,7 @@ your-project/
 ├── batten.yml                       # stack manifest
 ├── batten                           # CLI
 ├── .github/
-│   ├── workflows/ci.yml             # multi-language CI pipeline
+│   ├── workflows/ci.yml             # GitHub Actions pipeline (if github)
 │   ├── workflows/pr-validation.yml  # title format + tier detection
 │   ├── instructions/                # guardrails, workflow, prompts, review
 │   ├── context/                     # AI agent orientation files
@@ -186,6 +194,8 @@ your-project/
 │   ├── CODEOWNERS
 │   ├── copilot-instructions.md
 │   └── dependabot.yml
+├── .gitlab-ci.yml                   # GitLab CI pipeline (if gitlab)
+├── .circleci/config.yml             # CircleCI pipeline (if circleci)
 ├── .cursor/rules/batten.mdc         # Cursor rules
 ├── CLAUDE.md                        # Claude Code playbook
 ├── AGENTS.md                        # Codex playbook
@@ -263,8 +273,8 @@ Tier is auto-detected by CI from changed file paths. Override in the PR descript
 Batten follows semver. The `VERSION` file is the source of truth.
 
 ```bash
-copier copy gh:ehowardtillit/batten.git --vcs-ref=v0.1.4 my-project
-copier update --vcs-ref=v0.1.4
+copier copy gh:ehowardtillit/batten.git --vcs-ref=v0.1.5 my-project
+copier update --vcs-ref=v0.1.5
 copier update  # latest
 ```
 

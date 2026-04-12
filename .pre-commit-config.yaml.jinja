@@ -54,7 +54,7 @@ repos:
 {% endif %}
 {% endif %}
 
-{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java %}
+{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java or lang_csharp or lang_ruby %}
   - repo: local
     hooks:
 {% if lang_python %}
@@ -165,5 +165,19 @@ repos:
         language: system
         entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types_or: [java, kotlin]
+{% endif %}
+{% if lang_csharp %}
+      - id: no-todo-fixme-csharp
+        name: no-todo-fixme (csharp)
+        language: system
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [csharp]
+{% endif %}
+{% if lang_ruby %}
+      - id: no-todo-fixme-ruby
+        name: no-todo-fixme (ruby)
+        language: system
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types: [ruby]
 {% endif %}
 {% endif %}

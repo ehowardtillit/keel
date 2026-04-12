@@ -133,6 +133,38 @@ java_version:
     - "21"
     - "22"
 
+lang_csharp:
+  type: bool
+  help: "C#/.NET support (dotnet format, dotnet test)"
+  default: false
+
+dotnet_version:
+  type: str
+  help: ".NET SDK version for CI"
+  default: "8.0"
+  when: "{{ lang_csharp }}"
+  choices:
+    - "6.0"
+    - "7.0"
+    - "8.0"
+    - "9.0"
+
+lang_ruby:
+  type: bool
+  help: "Ruby support (rubocop, rspec, bundler-audit)"
+  default: false
+
+ruby_version:
+  type: str
+  help: "Ruby version for CI"
+  default: "3.3"
+  when: "{{ lang_ruby }}"
+  choices:
+    - "3.1"
+    - "3.2"
+    - "3.3"
+    - "3.4"
+
 # ─── Methodology ──────────────────────────────────────────────────────────────
 # Batten ships a default workflow (S/A/B/C tiers). If your org already has
 # a methodology, set custom_methodology=true to strip Batten's workflow content
@@ -238,3 +270,14 @@ dependency_updates:
     - "dependabot"
     - "renovate"
     - "none"
+
+# ─── CI Platform ─────────────────────────────────────────────────────────────
+
+ci_platform:
+  type: str
+  help: "CI/CD platform for generated pipeline"
+  default: "github"
+  choices:
+    - "github"
+    - "gitlab"
+    - "circleci"
