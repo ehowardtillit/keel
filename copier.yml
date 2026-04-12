@@ -18,6 +18,8 @@ _exclude:
   - ".github/ISSUE_TEMPLATE/feature.yml"
   - ".github/ISSUE_TEMPLATE/config.yml"
   - "LICENSE-FAQ.md"
+  - "install.sh"
+  - "CHANGELOG.md"
 
 # ─── Project Basics ───────────────────────────────────────────────────────────
 
@@ -29,7 +31,7 @@ project_name:
 github_owner:
   type: str
   help: "GitHub username or org (for CODEOWNERS)"
-  default: "your-github-username"
+  default: "CHANGE-ME"
 
 source_dirs:
   type: str
@@ -50,7 +52,7 @@ license:
 lang_python:
   type: bool
   help: "Python support (ruff, bandit, pytest, pip-audit)"
-  default: true
+  default: false
 
 python_version:
   type: str
@@ -117,10 +119,25 @@ otp_version:
     - "26"
     - "27"
 
+lang_java:
+  type: bool
+  help: "Java/Kotlin support (checkstyle, JUnit, SpotBugs, OWASP dep-check)"
+  default: false
+
+java_version:
+  type: str
+  help: "Java version for CI"
+  default: "21"
+  when: "{{ lang_java }}"
+  choices:
+    - "17"
+    - "21"
+    - "22"
+
 # ─── Methodology ──────────────────────────────────────────────────────────────
 # KEEL ships a default workflow (S/A/B/C tiers). If your org already has
 # a methodology, set custom_methodology=true to strip KEEL's workflow content
-# and keep only the infrastructure (CI, hooks, Makefile, tool wiring).
+# and keep only the infrastructure (CI, hooks, CLI, tool wiring).
 
 custom_methodology:
   type: bool
@@ -131,6 +148,7 @@ skip_agent_instructions:
   type: bool
   help: "Skip generating agent instruction files? (your methodology provides its own)"
   default: false
+  when: "{{ custom_methodology }}"
 
 branching_model:
   type: str

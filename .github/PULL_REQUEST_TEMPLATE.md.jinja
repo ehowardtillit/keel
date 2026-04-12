@@ -1,5 +1,6 @@
 ## Description
 <!-- What does this PR do? Brief summary. -->
+{% if not custom_methodology %}
 
 ## Tier
 <!-- Auto-detected by CI. Override if needed. -->
@@ -7,17 +8,18 @@
 - [ ] **A** -- Feature (new endpoint/service/model)
 - [ ] **B** -- Enhancement (modify existing)
 - [ ] **C** -- Trivial (docs/comments/logs)
+{% endif %}
 
 ## Related Issue
 <!-- Fixes #123 or Closes #456 -->
 
 ## Type of Change
-- [ ] 🐛 Bug fix
-- [ ] ✨ New feature
-- [ ] 💥 Breaking change
-- [ ] 📝 Documentation
-- [ ] 🔧 Refactoring
-- [ ] 🧪 Test update
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] Refactoring
+- [ ] Test update
 
 ## Changes Made
 -
@@ -28,18 +30,26 @@
 - [ ] New tests added for changed behavior
 
 ## Checklist
-- [ ] Pre-commit hooks pass (`pre-commit run --all-files`)
+- [ ] Pre-commit hooks pass (`./keel hooks run`)
 - [ ] No secrets committed
-- [ ] Conventional commit messages used (`feat|fix|docs|refactor|test|chore|ci|perf`)
 - [ ] `.github/context/` files updated (if architecture/API/module changes)
+{%- if not custom_methodology %}
+- [ ] Conventional commit messages used
 - [ ] ADR created (Tier S only)
+{%- endif %}
 
 ## Stack Verification
 <!-- Check tools you used for this PR -->
-- [ ] Pre-commit hooks pass (`pre-commit run --all-files`)
-- [ ] gstack `/review` passed (if available)
-- [ ] MemPalace context updated (if enabled)
-- [ ] Runtime guardrails checked (Caliper/AgentSteer, if enabled)
+- [ ] Pre-commit hooks pass
+{%- if gstack_enabled %}
+- [ ] gstack `/review` passed
+{%- endif %}
+{%- if mempalace_enabled %}
+- [ ] MemPalace context updated
+{%- endif %}
+{%- if runtime_enforcement != "none" %}
+- [ ] Runtime guardrails checked ({{ runtime_enforcement }})
+{%- endif %}
 
 ## Deployment Notes
 <!-- Any special instructions for deployment or rollback -->

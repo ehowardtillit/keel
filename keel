@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""⚓ keel -- Engineering Stack CLI
+"""keel -- Engineering Stack CLI
 
-Reads keel.yml from the current directory and drives Copier to
-regenerate infrastructure files. Users interact with keel.yml
-instead of .copier-answers.yml.
+Reads keel.yml from the current directory and manages the full
+engineering infrastructure: CI pipelines, pre-commit hooks, linting,
+testing, context management, and tool wiring.
+
+Think of it as docker-compose for your engineering process.
 """
 
 import argparse
 import os
+import re
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -19,46 +23,110 @@ except ImportError:
 
 KEEL_FILE = "keel.yml"
 
-# keel.yml path → (copier flag name, transform)
-# transform: None = pass through, callable = apply function
+VERSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")
+
+def _version():
+    try:
+        return open(VERSION_FILE).read().strip()
+    except FileNotFoundError:
+        return "dev"
+
+_NO_COLOR = os.environ.get("NO_COLOR") or not sys.stdout.isatty()
+
+def _c(code, text):
+    if _NO_COLOR:
+        return text
+    return f"\033[{code}m{text}\033[0m"
+
+def _info(msg):
+    print(_c("0;34", f"[keel]") + f" {msg}")
+
+def _ok(msg):
+    print(_c("0;32", f"[keel]") + f" {msg}")
+
+def _warn(msg):
+    print(_c("0;33", f"[keel]") + f" {msg}")
+
+def _err(msg):
+    print(_c("0;31", f"[keel]") + f" {msg}", file=sys.stderr)
+
 FIELD_MAP = [
-    ("project.name",                      "project_name",          None),
-    ("project.owner",                     "github_owner",          None),
-    ("project.source_dirs",               "source_dirs",           None),
-    ("project.license",                   "license",               None),
-    ("methodology.type",                  "custom_methodology",    lambda v: v == "custom"),
-    ("methodology.branching",             "branching_model",       None),
+    ("project.name",                        "project_name",            None),
+    ("project.owner",                       "github_owner",            None),
+    ("project.source_dirs",                 "source_dirs",             None),
+    ("project.license",                     "license",                 None),
+    ("methodology.type",                    "custom_methodology",      lambda v: v == "custom"),
+    ("methodology.branching",               "branching_model",         None),
     ("methodology.skip_agent_instructions", "skip_agent_instructions", None),
-    ("languages.python.enabled",          "lang_python",           None),
-    ("languages.python.version",          "python_version",        None),
-    ("languages.typescript.enabled",      "lang_typescript",       None),
-    ("languages.go.enabled",              "lang_go",               None),
-    ("languages.rust.enabled",            "lang_rust",             None),
-    ("languages.php.enabled",             "lang_php",              None),
-    ("languages.php.version",             "php_version",           None),
-    ("languages.elixir.enabled",          "lang_elixir",           None),
-    ("languages.elixir.version",          "elixir_version",        None),
-    ("languages.elixir.otp_version",      "otp_version",           None),
-    ("agents.claude_code",                "agent_claude_code",     None),
-    ("agents.cursor",                     "agent_cursor",          None),
-    ("agents.github_copilot",             "agent_github_copilot",  None),
-    ("agents.codex",                      "agent_codex",           None),
-    ("stack.memory.mempalace",            "mempalace_enabled",     None),
-    ("stack.workflow.gstack",             "gstack_enabled",        None),
-    ("stack.enforcement.runtime",         "runtime_enforcement",   None),
-    ("stack.enforcement.merge_gate",      "merge_gate",            None),
-    ("stack.security.codeguard",          "codeguard_enabled",     None),
-    ("stack.dependencies.updater",        "dependency_updates",    None),
+    ("languages.python.enabled",            "lang_python",             None),
+    ("languages.python.version",            "python_version",          None),
+    ("languages.typescript.enabled",        "lang_typescript",         None),
+    ("languages.go.enabled",                "lang_go",                 None),
+    ("languages.rust.enabled",              "lang_rust",               None),
+    ("languages.php.enabled",               "lang_php",                None),
+    ("languages.php.version",               "php_version",             None),
+    ("languages.elixir.enabled",            "lang_elixir",             None),
+    ("languages.elixir.version",            "elixir_version",          None),
+    ("languages.elixir.otp_version",        "otp_version",             None),
+    ("languages.java.enabled",              "lang_java",               None),
+    ("languages.java.version",              "java_version",            None),
+    ("agents.claude_code",                  "agent_claude_code",       None),
+    ("agents.cursor",                       "agent_cursor",            None),
+    ("agents.github_copilot",              "agent_github_copilot",    None),
+    ("agents.codex",                        "agent_codex",             None),
+    ("stack.memory.mempalace",              "mempalace_enabled",       None),
+    ("stack.workflow.gstack",               "gstack_enabled",          None),
+    ("stack.enforcement.runtime",           "runtime_enforcement",     None),
+    ("stack.enforcement.merge_gate",        "merge_gate",              None),
+    ("stack.security.codeguard",            "codeguard_enabled",       None),
+    ("stack.dependencies.updater",          "dependency_updates",      None),
 ]
 
+LANGUAGES = ("python", "typescript", "go", "rust", "php", "elixir", "java")
+AGENT_LABELS = [
+    ("claude_code", "Claude Code"), ("cursor", "Cursor"),
+    ("github_copilot", "Copilot"), ("codex", "Codex"),
+]
 
-# ── YAML loading ─────────────────────────────────────────────────────────────
+MANAGED_FILES = [
+    ".github/workflows/ci.yml",
+    ".pre-commit-config.yaml",
+    "CLAUDE.md",
+    "AGENTS.md",
+]
+
+LANG_GLOBS = {
+    "python": "*.py",
+    "typescript": "*.ts\" -o -name \"*.tsx",
+    "go": "*.go",
+    "rust": "*.rs",
+    "php": "*.php",
+    "elixir": "*.ex\" -o -name \"*.exs",
+    "java": "*.java\" -o -name \"*.kt",
+}
+
+
+# -- YAML loading -------------------------------------------------------------
+
+def _strip_comment(line):
+    """Strip comments from a YAML line while respecting quoted strings."""
+    in_single = in_double = False
+    for i, c in enumerate(line):
+        if c == '"' and not in_single:
+            in_double = not in_double
+        elif c == "'" and not in_double:
+            in_single = not in_single
+        elif c == '#' and not in_single and not in_double:
+            return line[:i].rstrip()
+    return line.rstrip()
+
 
 def _parse_yaml_basic(text):
     """Minimal YAML-subset parser for when PyYAML is unavailable."""
-    root, stack = {}, [(root, -1)]  # (dict_node, indent)
+    root = {}
+    stack = [(root, -1)]
     for raw in text.splitlines():
-        s = raw.split("#")[0].rstrip()
+        s = _strip_comment(raw)
         if not s or s.startswith("#"):
             continue
         indent, kv = len(raw) - len(raw.lstrip()), s.strip()
@@ -68,21 +136,30 @@ def _parse_yaml_basic(text):
             key, _, val = kv.partition(":")
             key, val = key.strip(), val.strip().strip('"').strip("'")
             if val == "":
-                child = {}; stack[-1][0][key] = child; stack.append((child, indent))
+                child = {}
+                stack[-1][0][key] = child
+                stack.append((child, indent))
             elif val == "[]":
                 stack[-1][0][key] = []
             elif val.startswith("["):
-                stack[-1][0][key] = [i.strip().strip('"').strip("'") for i in val.strip("[]").split(",") if i.strip()]
+                stack[-1][0][key] = [
+                    i.strip().strip('"').strip("'")
+                    for i in val.strip("[]").split(",") if i.strip()
+                ]
             elif val.lower() in ("true", "false"):
                 stack[-1][0][key] = val.lower() == "true"
             else:
-                try: stack[-1][0][key] = int(val)
-                except ValueError: stack[-1][0][key] = val
+                try:
+                    stack[-1][0][key] = int(val)
+                except ValueError:
+                    stack[-1][0][key] = val
         elif kv.startswith("- "):
-            item, parent = kv[2:].strip().strip('"').strip("'"), stack[-1][0]
+            item = kv[2:].strip().strip('"').strip("'")
+            parent = stack[-1][0]
             if isinstance(parent, dict):
                 lk = list(parent.keys())[-1]
-                if not isinstance(parent[lk], list): parent[lk] = []
+                if not isinstance(parent[lk], list):
+                    parent[lk] = []
                 parent[lk].append(item)
     return root
 
@@ -91,7 +168,8 @@ def load_keel():
     if not os.path.exists(KEEL_FILE):
         print(f"Error: {KEEL_FILE} not found in current directory.", file=sys.stderr)
         sys.exit(1)
-    text = open(KEEL_FILE).read()
+    from pathlib import Path
+    text = Path(KEEL_FILE).read_text()
     return yaml.safe_load(text) if yaml else _parse_yaml_basic(text)
 
 
@@ -102,6 +180,19 @@ def _get(data, dotpath, default=None):
             return default
         node = node[k]
     return node
+
+
+def _enabled_langs(data):
+    return [l for l in LANGUAGES if _get(data, f"languages.{l}.enabled")]
+
+
+def _source_dirs(data):
+    return _get(data, "project.source_dirs", "src/")
+
+
+def _project_slug(data):
+    name = _get(data, "project.name", "project")
+    return re.sub(r'[^a-z0-9_-]', '-', name.lower()).strip('-')
 
 
 def build_copier_flags(data):
@@ -117,12 +208,32 @@ def build_copier_flags(data):
     return flags
 
 
-# ── Subcommands ──────────────────────────────────────────────────────────────
+def _run(cmd, check=True, capture=False, timeout=300, **kwargs):
+    """Run a command, return CompletedProcess."""
+    if isinstance(cmd, str):
+        kwargs.setdefault("shell", True)
+    try:
+        result = subprocess.run(cmd, capture_output=capture, text=True, timeout=timeout, **kwargs)
+    except subprocess.TimeoutExpired:
+        cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
+        print(f"Command timed out after {timeout}s: {cmd_str}", file=sys.stderr)
+        sys.exit(1)
+    if check and result.returncode != 0:
+        cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
+        print(f"Command failed (exit {result.returncode}): {cmd_str}", file=sys.stderr)
+        sys.exit(result.returncode)
+    return result
 
-LANGUAGES = ("python", "typescript", "go", "rust", "php", "elixir")
-AGENT_LABELS = [("claude_code", "Claude Code"), ("cursor", "Cursor"),
-                ("github_copilot", "Copilot"), ("codex", "Codex")]
 
+def _run_quiet(cmd, **kwargs):
+    return _run(cmd, check=False, capture=True, **kwargs)
+
+
+def _has_cmd(name):
+    return shutil.which(name) is not None
+
+
+# -- Commands: Stack Management ------------------------------------------------
 
 def cmd_status(_args):
     data = load_keel()
@@ -136,16 +247,28 @@ def cmd_status(_args):
         langs.append(f"{label} {ver}" if ver else label)
 
     agents = [lbl for key, lbl in AGENT_LABELS if _get(data, f"agents.{key}")]
-
     mtype = _get(data, "methodology.type", "keel")
-    mtype_display = f"{mtype} (S/A/B/C tiers)" if mtype == "keel" else mtype
-
+    msource = _get(data, "methodology.source")
+    mpath = _get(data, "methodology.path", ".methodology")
+    mver = _get(data, "methodology.version")
+    if mtype == "keel":
+        mtype_display = "keel (S/A/B/C tiers)"
+    elif msource:
+        installed = os.path.isdir(mpath) if mpath else False
+        src_short = msource.rsplit("/", 1)[-1].replace(".git", "")
+        mtype_display = f"custom: {src_short}"
+        if mver:
+            mtype_display += f" @ {mver}"
+        if not installed:
+            mtype_display += " (not installed -- run ./keel install)"
+    else:
+        mtype_display = "custom"
     rt = _get(data, "stack.enforcement.runtime", "none")
     mg = _get(data, "stack.enforcement.merge_gate", "none")
-    enforcement_parts = [x for x in (rt, mg) if x != "none"]
+    enforcement = [x for x in (rt, mg) if x != "none"]
     ci_jobs = _get(data, "ci_extra_jobs", [])
 
-    print("KEEL Stack Status")
+    _info("Stack Status")
     print("\u2500" * 40)
     print(f"  Project:      {_get(data, 'project.name', '?')} (owner: {_get(data, 'project.owner', '?')})")
     print(f"  Methodology:  {mtype_display}")
@@ -154,49 +277,56 @@ def cmd_status(_args):
     print(f"  Agents:       {', '.join(agents) if agents else 'none'}")
     print(f"  Memory:       {'MemPalace' if _get(data, 'stack.memory.mempalace') else 'none'}")
     print(f"  Workflow:     {'gstack' if _get(data, 'stack.workflow.gstack') else 'none'}")
-    print(f"  Enforcement:  {' / '.join(enforcement_parts) if enforcement_parts else 'none'}")
+    print(f"  Enforcement:  {' / '.join(enforcement) if enforcement else 'none'}")
     print(f"  Security:     {'CodeGuard' if _get(data, 'stack.security.codeguard') else 'none'}")
     print(f"  Dependencies: {_get(data, 'stack.dependencies.updater', 'none')}")
     if ci_jobs:
         print(f"  CI Extensions: {len(ci_jobs)} custom job{'s' if len(ci_jobs) != 1 else ''}")
 
 
-def cmd_validate(_args):
+def cmd_validate(args):
     data = load_keel()
     errors, warnings = [], []
     if _get(data, "version") != 1:
         errors.append("'version' must be 1")
     if not _get(data, "project.name"):
         errors.append("'project.name' is required")
-    if not any(_get(data, f"languages.{l}.enabled") for l in LANGUAGES):
+    if not _enabled_langs(data):
         errors.append("At least one language must be enabled")
-    if _get(data, "methodology.type") == "custom" and not _get(data, "methodology.skip_agent_instructions"):
+    if (_get(data, "methodology.type") == "custom"
+            and not _get(data, "methodology.skip_agent_instructions")):
         warnings.append(
             "methodology.type is 'custom' but skip_agent_instructions is false -- "
-            "KEEL-generated agent instructions may conflict with your methodology")
+            "KEEL agent instructions may conflict with your methodology")
+
+    if hasattr(args, 'check_drift') and args.check_drift:
+        print("  Checking for drift...")
+        flags = build_copier_flags(data)
+        cmd = ["copier", "update", "--trust", "--force", "--pretend"] + flags
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if "identical" not in r.stdout.lower() and r.stdout.strip():
+            warnings.append("Generated files may be out of sync with keel.yml. Run ./keel regenerate.")
+
     for w in warnings:
         print(f"  Warning: {w}")
     if errors:
         for e in errors:
             print(f"  Error: {e}", file=sys.stderr)
         sys.exit(1)
-    print("keel.yml is valid.")
+    _ok("keel.yml is valid.")
 
 
 def _write_ci_custom(jobs):
-    """Write .github/workflows/ci-custom.yml from ci_extra_jobs entries."""
     if not jobs:
         return
     os.makedirs(".github/workflows", exist_ok=True)
     lines = [
-        "# Auto-generated by `keel regenerate` -- do not edit manually.",
-        "name: CI Custom",
-        "",
+        "# Auto-generated by keel regenerate -- do not edit manually.",
+        "name: CI Custom", "",
         "on:",
         "  push:",
         "    branches: [main, master]",
-        "  pull_request:",
-        "",
+        "  pull_request:", "",
         "jobs:",
     ]
     for job in jobs:
@@ -205,12 +335,13 @@ def _write_ci_custom(jobs):
         run_cmd = job.get("run", "echo 'no command specified'")
         lines += [
             f"  {slug}:",
-            f"    name: {name}",
+            f"    name: \"{name}\"",
             "    runs-on: ubuntu-latest",
             "    steps:",
-            "      - uses: actions/checkout@v4",
-            f"      - name: {name}",
-            f"        run: {run_cmd}",
+            "      - uses: actions/checkout@v6",
+            f"      - name: \"{name}\"",
+            f"        run: |",
+            f"          {run_cmd}",
             "",
         ]
     path = os.path.join(".github", "workflows", "ci-custom.yml")
@@ -219,72 +350,621 @@ def _write_ci_custom(jobs):
     print(f"  Wrote {path}")
 
 
-def _run_copier(data, extra_args=None):
+def cmd_regenerate(args):
+    data = load_keel()
+
+    existing = [f for f in MANAGED_FILES if os.path.exists(f)]
+    if existing and sys.stdin.isatty():
+        print(f"  Warning: {len(existing)} existing files will be overwritten:")
+        for f in existing:
+            print(f"    {f}")
+        resp = input("  Continue? [y/N] ")
+        if resp.lower() != 'y':
+            print("  Aborted.")
+            sys.exit(0)
+
     flags = build_copier_flags(data)
     cmd = ["copier", "update", "--trust", "--force"] + flags
-    if extra_args:
-        cmd += extra_args
-    print(f"  Running: {' '.join(cmd)}\n")
-    result = subprocess.run(cmd)
-    return result.returncode
-
-
-def cmd_regenerate(_args):
-    data = load_keel()
-    rc = _run_copier(data)
+    print(f"  Running: copier update ...\n")
+    rc = subprocess.run(cmd).returncode
     if rc != 0:
         print("\nCopier exited with errors.", file=sys.stderr)
         sys.exit(rc)
     ci_jobs = _get(data, "ci_extra_jobs", [])
     if ci_jobs:
         _write_ci_custom(ci_jobs)
-    print("\nRegeneration complete.")
+    _ok("Regeneration complete.")
 
 
 def cmd_diff(_args):
     data = load_keel()
-    rc = _run_copier(data, extra_args=["--pretend"])
-    sys.exit(rc)
+    flags = build_copier_flags(data)
+    cmd = ["copier", "update", "--trust", "--force", "--pretend"] + flags
+    sys.exit(subprocess.run(cmd).returncode)
 
 
-# ── Entry point ──────────────────────────────────────────────────────────────
+# -- Commands: Install ---------------------------------------------------------
 
-BANNER = textwrap.dedent("""\
-    ⚓ keel -- Engineering Stack CLI
-    Usage: keel <command>
+def _install_methodology(data):
+    """Install external methodology via git submodule if configured."""
+    source = _get(data, "methodology.source")
+    if not source:
+        return
+    path = _get(data, "methodology.path", ".methodology")
+    version = _get(data, "methodology.version")
+    init_script = _get(data, "methodology.init")
 
-    Commands:
-      status      Show current keel.yml configuration summary
-      validate    Check keel.yml for errors
-      regenerate  Re-run Copier with values from keel.yml
-      diff        Preview what regenerate would change
-""")
+    real_path = os.path.realpath(path)
+    repo_root = os.path.realpath(".")
+    if not real_path.startswith(repo_root):
+        print(f"Error: methodology.path '{path}' resolves outside repository.", file=sys.stderr)
+        sys.exit(1)
 
+    if os.path.isdir(path):
+        print(f"  Methodology already installed at {path}")
+        if version:
+            print(f"  Pinning to {version}")
+            _run(["git", "fetch", "--tags"], check=False, cwd=path)
+            _run(["git", "checkout", version], check=False, cwd=path)
+    else:
+        print(f"  Installing methodology from {source}")
+        r = _run_quiet(["git", "config", "--file", ".gitmodules", "--get",
+                         f"submodule.{path}.url"])
+        if r.returncode == 0:
+            print(f"  Submodule already registered, initializing...")
+            _run(["git", "submodule", "update", "--init", path])
+        else:
+            _run(["git", "submodule", "add", "--", source, path])
+        if version:
+            print(f"  Pinning to {version}")
+            _run(["git", "checkout", version], check=False, cwd=path)
+
+    if init_script:
+        full_init = os.path.join(path, init_script)
+        if os.path.isfile(full_init):
+            real_init = os.path.realpath(full_init)
+            if not real_init.startswith(os.path.realpath(path)):
+                print(f"Error: init script '{init_script}' resolves outside methodology path.", file=sys.stderr)
+                sys.exit(1)
+            print(f"  Will run methodology init: {full_init}")
+            if sys.stdin.isatty():
+                resp = input("  Continue? [y/N] ")
+                if resp.lower() != 'y':
+                    print("  Skipped init script.")
+                    return
+            _run(["bash", full_init])
+        else:
+            print(f"  Warning: init script not found at {full_init}")
+
+
+def cmd_init(_args):
+    """Interactive KEEL setup using Copier."""
+    if os.path.exists(KEEL_FILE):
+        _err(f"{KEEL_FILE} already exists. Use ./keel regenerate to update.")
+        sys.exit(1)
+    if not _has_cmd("copier"):
+        _err("copier is required. Install with: pip install 'copier>=9,<11'")
+        sys.exit(1)
+    _info("Initializing new KEEL project...")
+    _info("Answer the prompts to configure your stack.\n")
+    _run(["copier", "copy", "--trust", "gh:ehowardtillit/keel", "."])
+    if os.path.exists(KEEL_FILE):
+        _ok("keel.yml created. Run ./keel install to complete setup.")
+    else:
+        _err("Initialization failed -- keel.yml was not created.")
+        sys.exit(1)
+
+
+def cmd_install(_args):
+    data = load_keel()
+    _info(f"Install v{_version()}")
+    print("=" * 40)
+
+    existing = [f for f in MANAGED_FILES if os.path.exists(f)]
+    if existing and sys.stdin.isatty():
+        print(f"  Warning: {len(existing)} existing files will be overwritten:")
+        for f in existing:
+            print(f"    {f}")
+        resp = input("  Continue? [y/N] ")
+        if resp.lower() != 'y':
+            print("  Aborted.")
+            sys.exit(0)
+
+    # 1. Bootstrap: language toolchains
+    print("\n[1/5] Bootstrapping language toolchains...")
+    if os.path.isfile("bootstrap.sh"):
+        _run(["bash", "bootstrap.sh"])
+    else:
+        print("  No bootstrap.sh found, skipping.")
+
+    # 2. Methodology: install external methodology if configured
+    print("\n[2/5] Methodology setup...")
+    mtype = _get(data, "methodology.type", "keel")
+    source = _get(data, "methodology.source")
+    if mtype == "custom" and source:
+        _install_methodology(data)
+    elif mtype == "custom":
+        print("  Custom methodology selected but no source configured in keel.yml.")
+        print("  Add methodology.source to keel.yml if you want auto-install,")
+        print("  or install your methodology manually.")
+    else:
+        print("  Using KEEL's built-in methodology (S/A/B/C tiers).")
+
+    # 3. Pre-commit hooks
+    print("\n[3/5] Installing pre-commit hooks...")
+    if _has_cmd("pre-commit"):
+        _run(["pre-commit", "install"], check=False)
+    else:
+        print("  pre-commit not found, skipping. Install with: pip install pre-commit")
+
+    # 4. Stack tools
+    print("\n[4/5] Checking stack tools...")
+    if _get(data, "stack.memory.mempalace"):
+        if _has_cmd("mempalace"):
+            print("  MemPalace: installed")
+            slug = _project_slug(data)
+            print(f"  Mining repository into MemPalace wing '{slug}'...")
+            _run(["mempalace", "mine", ".", "--wing", slug], check=False)
+        else:
+            print("  MemPalace: not installed (pip install mempalace)")
+    if _get(data, "stack.workflow.gstack"):
+        if _has_cmd("gstack") or os.path.isdir(".gstack"):
+            print("  gstack: available")
+        else:
+            print("  gstack: not found (see https://github.com/garrytan/gstack)")
+    rt = _get(data, "stack.enforcement.runtime", "none")
+    if rt != "none":
+        print(f"  Runtime enforcement: {rt} (verify manually)")
+    mg = _get(data, "stack.enforcement.merge_gate", "none")
+    if mg != "none":
+        print(f"  Merge gate: {mg} (verify CI config)")
+    if _get(data, "stack.security.codeguard"):
+        print("  CodeGuard: enabled (verify semgrep rules)")
+
+    # 5. Context files
+    print("\n[5/5] Generating context files...")
+    _run_context_refresh(data)
+
+    # Summary
+    print("\n" + "=" * 40)
+    _ok("Install complete. Run ./keel status to verify.")
+
+
+def cmd_bootstrap(_args):
+    if not os.path.isfile("bootstrap.sh"):
+        print("Error: bootstrap.sh not found.", file=sys.stderr)
+        sys.exit(1)
+    _run(["bash", "bootstrap.sh"])
+
+
+# -- Commands: Quality ---------------------------------------------------------
+
+def _lint_commands(data):
+    cmds = []
+    sd = _source_dirs(data)
+    if _get(data, "languages.python.enabled"):
+        cmds.append(("Python (ruff)",
+                      ["ruff", "check", sd, "--ignore", "E501,F401",
+                       "--exclude", "*/venv/*,*/.venv/*"]))
+    if _get(data, "languages.typescript.enabled"):
+        cmds.append(("TypeScript (eslint)", ["npx", "eslint", "."]))
+    if _get(data, "languages.go.enabled"):
+        cmds.append(("Go (golangci-lint)", ["golangci-lint", "run"]))
+    if _get(data, "languages.rust.enabled"):
+        cmds.append(("Rust (clippy)", ["cargo", "clippy"]))
+    if _get(data, "languages.php.enabled"):
+        cmds.append(("PHP (phpcs)",
+                      ["vendor/bin/phpcs", "--standard=PSR12", sd]))
+    if _get(data, "languages.elixir.enabled"):
+        cmds.append(("Elixir (credo)", ["mix", "credo", "--strict"]))
+    if _get(data, "languages.java.enabled"):
+        cmds.append(("Java (checkstyle)", ["mvn", "checkstyle:check", "-q"]))
+    return cmds
+
+
+def _test_commands(data):
+    cmds = []
+    if _get(data, "languages.python.enabled"):
+        cmds.append(("Python (pytest)", ["pytest", "tests/", "-v", "--tb=short"]))
+    if _get(data, "languages.typescript.enabled"):
+        cmds.append(("TypeScript (vitest)", ["npx", "vitest", "run"]))
+    if _get(data, "languages.go.enabled"):
+        cmds.append(("Go", ["go", "test", "./..."]))
+    if _get(data, "languages.rust.enabled"):
+        cmds.append(("Rust", ["cargo", "test"]))
+    if _get(data, "languages.php.enabled"):
+        cmds.append(("PHP (phpunit)", ["vendor/bin/phpunit"]))
+    if _get(data, "languages.elixir.enabled"):
+        cmds.append(("Elixir", ["mix", "test"]))
+    if _get(data, "languages.java.enabled"):
+        cmds.append(("Java (maven)", ["mvn", "test", "-q"]))
+    return cmds
+
+
+def cmd_lint(args):
+    data = load_keel()
+    cmds = _lint_commands(data)
+    if not cmds:
+        print("No languages enabled for linting.")
+        return
+    lang_filter = args.lang if hasattr(args, "lang") and args.lang else None
+    extra = args.passthrough if hasattr(args, "passthrough") and args.passthrough else []
+    failed = []
+    for label, cmd in cmds:
+        if lang_filter and lang_filter.lower() not in label.lower():
+            continue
+        if extra:
+            cmd = cmd + extra
+        print(f"  Linting: {label}")
+        r = _run(cmd, check=False)
+        if r.returncode != 0:
+            failed.append(label)
+    if failed:
+        _err(f"Lint failures: {', '.join(failed)}")
+        sys.exit(1)
+    _ok("All linters passed.")
+
+
+def cmd_test(args):
+    data = load_keel()
+    cmds = _test_commands(data)
+    if not cmds:
+        print("No languages enabled for testing.")
+        return
+    lang_filter = args.lang if hasattr(args, "lang") and args.lang else None
+    extra = args.passthrough if hasattr(args, "passthrough") and args.passthrough else []
+    failed = []
+    for label, cmd in cmds:
+        if lang_filter and lang_filter.lower() not in label.lower():
+            continue
+        if extra:
+            cmd = cmd + extra
+        print(f"  Testing: {label}")
+        r = _run(cmd, check=False)
+        if r.returncode != 0:
+            failed.append(label)
+    if failed:
+        _err(f"Test failures: {', '.join(failed)}")
+        sys.exit(1)
+    _ok("All tests passed.")
+
+
+def cmd_format(_args):
+    data = load_keel()
+    ran = False
+    if _get(data, "languages.python.enabled"):
+        print("  Formatting: Python (ruff)")
+        _run(["ruff", "format", "."])
+        ran = True
+    if _get(data, "languages.typescript.enabled"):
+        print("  Formatting: TypeScript (prettier)")
+        _run(["npx", "prettier", "--write", "."])
+        ran = True
+    if _get(data, "languages.go.enabled"):
+        print("  Formatting: Go (gofmt)")
+        _run(["gofmt", "-w", "."])
+        ran = True
+    if _get(data, "languages.rust.enabled"):
+        print("  Formatting: Rust (cargo fmt)")
+        _run(["cargo", "fmt"])
+        ran = True
+    if _get(data, "languages.php.enabled"):
+        print("  Formatting: PHP (php-cs-fixer)")
+        _run(["vendor/bin/php-cs-fixer", "fix"])
+        ran = True
+    if _get(data, "languages.elixir.enabled"):
+        print("  Formatting: Elixir (mix format)")
+        _run(["mix", "format"])
+        ran = True
+    if _get(data, "languages.java.enabled"):
+        print("  Formatting: Java (google-java-format)")
+        _run(["mvn", "com.spotify.fmt:fmt-maven-plugin:format"], check=False)
+        ran = True
+    if not ran:
+        print("No auto-formatters configured for enabled languages.")
+
+
+def cmd_security_scan(_args):
+    data = load_keel()
+    sd = _source_dirs(data)
+    ran = False
+    if _get(data, "languages.python.enabled"):
+        print("  Scanning: Python (bandit)")
+        _run(["bandit", "-r", sd, "-ll", "--skip", "B101", "-f", "txt"], check=False)
+        ran = True
+    if _get(data, "languages.typescript.enabled"):
+        print("  Scanning: TypeScript (npm audit)")
+        _run(["npm", "audit"], check=False)
+        ran = True
+    if _get(data, "languages.go.enabled"):
+        print("  Scanning: Go (govulncheck)")
+        _run(["govulncheck", "./..."], check=False)
+        ran = True
+    if _get(data, "languages.rust.enabled"):
+        print("  Scanning: Rust (cargo audit)")
+        _run(["cargo", "audit"], check=False)
+        ran = True
+    if _get(data, "languages.php.enabled"):
+        print("  Scanning: PHP (composer audit)")
+        _run(["composer", "audit"], check=False)
+        ran = True
+    if _get(data, "languages.elixir.enabled"):
+        print("  Scanning: Elixir (sobelow)")
+        _run(["mix", "sobelow", "--config"], check=False)
+        ran = True
+    if _get(data, "languages.java.enabled"):
+        print("  Scanning: Java (OWASP dependency-check)")
+        _run(["mvn", "org.owasp:dependency-check-maven:check", "-q"], check=False)
+        ran = True
+    if not ran:
+        print("No security scanners configured for enabled languages.")
+
+
+# -- Commands: Hooks -----------------------------------------------------------
+
+def cmd_hooks(args):
+    action = args.action if hasattr(args, "action") and args.action else "run"
+    if action == "install":
+        _run(["pre-commit", "install"])
+    elif action == "run":
+        _run(["pre-commit", "run", "--all-files"], check=False)
+    else:
+        print(f"Unknown hooks action: {action}")
+        sys.exit(1)
+
+
+# -- Commands: Secrets ---------------------------------------------------------
+
+def cmd_secrets(args):
+    action = args.action if hasattr(args, "action") and args.action else "audit"
+    exclude = r"\.venv|venv|__pycache__|node_modules|\.git|docs/book"
+    if action == "baseline":
+        _run(["detect-secrets", "scan", "--exclude-files", exclude],
+             capture=True, check=False)
+        print("Secrets baseline regenerated -- review and commit.")
+    elif action == "audit":
+        _run(["detect-secrets", "scan", "--exclude-files", exclude,
+              "--baseline", ".secrets.baseline"], check=False)
+    else:
+        print(f"Unknown secrets action: {action}")
+        sys.exit(1)
+
+
+# -- Commands: Context ---------------------------------------------------------
+
+def cmd_context(args):
+    data = load_keel()
+    action = args.action if hasattr(args, "action") and args.action else "refresh"
+
+    if action == "refresh":
+        _run_context_refresh(data)
+    elif action == "live":
+        if not _get(data, "stack.memory.mempalace"):
+            print("MemPalace is not enabled in keel.yml.")
+            sys.exit(1)
+        _run_context_live(data)
+    else:
+        print(f"Unknown context action: {action}")
+        sys.exit(1)
+
+
+def _build_find_name_expr(langs):
+    """Build a find -name expression covering all enabled languages."""
+    globs = []
+    glob_map = {
+        "python": ["*.py"],
+        "typescript": ["*.ts", "*.tsx"],
+        "go": ["*.go"],
+        "rust": ["*.rs"],
+        "php": ["*.php"],
+        "elixir": ["*.ex", "*.exs"],
+        "java": ["*.java", "*.kt"],
+    }
+    for lang in langs:
+        globs.extend(glob_map.get(lang, []))
+    if not globs:
+        globs = ["*.py"]
+    parts = []
+    for i, g in enumerate(globs):
+        if i > 0:
+            parts.append("-o")
+        parts.append("-name")
+        parts.append(f'"{g}"')
+    return " ".join(parts)
+
+
+def _run_context_refresh(data):
+    os.makedirs(".github/context", exist_ok=True)
+    langs = _enabled_langs(data) or ["python"]
+    name_expr = _build_find_name_expr(langs)
+
+    with open(".github/context/MODULE_MAP.md", "w") as f:
+        f.write("# Module Map\n\n")
+        f.write("<!-- Auto-generated by keel context refresh -- do not edit manually -->\n\n")
+    _run(
+        'for dir in $(find . -maxdepth 2 \\( ' + name_expr + ' \\) 2>/dev/null '
+        "| sed 's|/[^/]*$||' | sort -u "
+        "| grep -vE '\\.venv|venv|__pycache__|\\.git|node_modules|target' | head -30); do "
+        'count=$(find "$dir" -maxdepth 1 \\( ' + name_expr + ' \\) | wc -l); '
+        'echo "| \\`$dir\\` | $count files |" >> .github/context/MODULE_MAP.md; '
+        "done",
+        check=False,
+    )
+
+    with open(".github/context/CHANGELOG_RECENT.md", "w") as f:
+        f.write("# Recent Changes\n\n")
+        f.write("<!-- Auto-generated by keel context refresh -- do not edit manually -->\n\n")
+    _run("git log --oneline -50 >> .github/context/CHANGELOG_RECENT.md 2>/dev/null || true")
+
+    with open(".github/context/CHANGELOG_RECENT.md", "a") as f:
+        f.write("\n## Recent Plans\n\n")
+    _run(
+        r"""for f in $(ls -t docs/plans/*.md 2>/dev/null | grep -v template | grep -v README | head -5); do
+            title=$(head -1 "$f" | sed 's/^# //')
+            echo "- [\`$f\`] $title" >> .github/context/CHANGELOG_RECENT.md
+        done""",
+        check=False,
+    )
+
+    with open(".github/context/CHANGELOG_RECENT.md", "a") as f:
+        f.write("\n## Recent Implementations\n\n")
+    _run(
+        r"""for f in $(ls -t docs/implementations/*.md 2>/dev/null | grep -v template | grep -v README | head -5); do
+            title=$(head -1 "$f" | sed 's/^# //')
+            echo "- [\`$f\`] $title" >> .github/context/CHANGELOG_RECENT.md
+        done""",
+        check=False,
+    )
+    _ok("Context files refreshed.")
+
+
+def _run_context_live(data):
+    slug = _project_slug(data)
+    os.makedirs(".github/context", exist_ok=True)
+
+    arch_path = ".github/context/ARCHITECTURE.md"
+    if not os.path.isfile(arch_path):
+        with open(arch_path, "w") as f:
+            f.write("# Architecture\n\n")
+            f.write("<!-- Auto-generated by keel context live -- do not edit manually -->\n\n")
+
+    with open(arch_path, "a") as f:
+        f.write("\n## MemPalace Context\n")
+
+    _run(["mempalace", "search", "architecture overview", "--wing", slug],
+         check=False)
+    _run(["mempalace", "kg_timeline"], check=False)
+
+    _run_context_refresh(data)
+    print("Context files refreshed from MemPalace.")
+
+
+# -- Commands: Memory ----------------------------------------------------------
+
+def cmd_memory(args):
+    data = load_keel()
+    if not _get(data, "stack.memory.mempalace"):
+        print("MemPalace is not enabled in keel.yml.")
+        sys.exit(1)
+
+    action = args.action if hasattr(args, "action") and args.action else "status"
+    slug = _project_slug(data)
+
+    if action == "status":
+        _run(["mempalace", "status"])
+    elif action == "mine":
+        _run(["mempalace", "mine", ".", "--wing", slug])
+    elif action == "search":
+        query = args.query if hasattr(args, "query") and args.query else ""
+        if not query:
+            print("Usage: keel memory search <query>")
+            sys.exit(1)
+        _run(["mempalace", "search", query, "--wing", slug])
+    else:
+        print(f"Unknown memory action: {action}")
+        sys.exit(1)
+
+
+# -- Commands: Eject -----------------------------------------------------------
+
+def cmd_eject(_args):
+    load_keel()
+    _info("Ejecting from KEEL...")
+    for f in ["keel.yml", ".copier-answers.yml"]:
+        if os.path.exists(f):
+            os.remove(f)
+            print(f"  Removed {f}")
+    print("  Generated files (CI, hooks, agent instructions) are yours to keep.")
+    print("  Remove ./keel when ready.")
+    print("\nEjection complete. Your project is now standalone.")
+
+
+# -- Entry point ---------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
         prog="keel",
-        description="Engineering Stack CLI -- reads keel.yml, drives Copier.",
+        description="keel -- Engineering Stack CLI\n\nReads keel.yml and manages infrastructure.",
+        epilog=textwrap.dedent("""\
+            examples:
+              ./keel install                Full setup
+              ./keel lint --lang python     Lint only Python
+              ./keel lint -- --fix          Pass --fix to the underlying linter
+              ./keel context refresh        Regenerate context files
+              ./keel memory search <query>  Search MemPalace
+              ./keel validate --check-drift Check for config drift
+              ./keel eject                  Remove keel config, keep generated files
+        """),
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Run 'keel <command>' to get started.",
     )
+    parser.add_argument("-V", "--version", action="version",
+                        version=f"keel {_version()}")
     sub = parser.add_subparsers(dest="command")
-    sub.add_parser("status", help="Show current keel.yml configuration summary")
-    sub.add_parser("validate", help="Check keel.yml for errors")
-    sub.add_parser("regenerate", help="Re-run Copier with values from keel.yml")
+
+    sub.add_parser("init", help="Interactive setup: create keel.yml from scratch")
+    sub.add_parser("install", help="Full setup: bootstrap + methodology + hooks + tools")
+    sub.add_parser("bootstrap", help="Run bootstrap.sh only (language toolchains)")
+    sub.add_parser("status", help="Show keel.yml configuration summary")
+
+    p_validate = sub.add_parser("validate", help="Check keel.yml for errors")
+    p_validate.add_argument("--check-drift", action="store_true",
+                            help="Check if generated files match keel.yml")
+
+    sub.add_parser("regenerate", help="Regenerate infrastructure from keel.yml")
     sub.add_parser("diff", help="Preview what regenerate would change")
 
-    args = parser.parse_args()
+    p_lint = sub.add_parser("lint", help="Run linters for enabled languages")
+    p_lint.add_argument("--lang", help="Filter to specific language (e.g. python, go)")
+    p_lint.add_argument("passthrough", nargs="*", help="Extra args after --")
 
+    p_test = sub.add_parser("test", help="Run tests for enabled languages")
+    p_test.add_argument("--lang", help="Filter to specific language")
+    p_test.add_argument("passthrough", nargs="*", help="Extra args after --")
+
+    sub.add_parser("format", help="Auto-format code")
+    sub.add_parser("security-scan", help="Run security scanners")
+
+    p_hooks = sub.add_parser("hooks", help="Manage pre-commit hooks")
+    p_hooks.add_argument("action", nargs="?", default="run",
+                         choices=["install", "run"], help="install or run")
+
+    p_secrets = sub.add_parser("secrets", help="Manage secrets baseline")
+    p_secrets.add_argument("action", nargs="?", default="audit",
+                           choices=["baseline", "audit"])
+
+    p_ctx = sub.add_parser("context", help="Manage AI context files")
+    p_ctx.add_argument("action", nargs="?", default="refresh",
+                       choices=["refresh", "live"])
+
+    p_mem = sub.add_parser("memory", help="MemPalace operations")
+    p_mem.add_argument("action", nargs="?", default="status",
+                       choices=["status", "mine", "search"])
+    p_mem.add_argument("query", nargs="?", default="", help="Search query")
+
+    sub.add_parser("eject", help="Remove keel config, keep generated files")
+
+    args = parser.parse_args()
     if not args.command:
-        print(BANNER)
+        parser.print_help()
         sys.exit(0)
 
     dispatch = {
+        "init": cmd_init,
+        "install": cmd_install,
+        "bootstrap": cmd_bootstrap,
         "status": cmd_status,
         "validate": cmd_validate,
         "regenerate": cmd_regenerate,
         "diff": cmd_diff,
+        "lint": cmd_lint,
+        "test": cmd_test,
+        "format": cmd_format,
+        "security-scan": cmd_security_scan,
+        "hooks": cmd_hooks,
+        "secrets": cmd_secrets,
+        "context": cmd_context,
+        "memory": cmd_memory,
+        "eject": cmd_eject,
     }
     dispatch[args.command](args)
 

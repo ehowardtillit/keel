@@ -26,7 +26,7 @@ KEEL sits at the infrastructure layer and orchestrates everything above it:
 
 | Layer | Tool | What KEEL does |
 |-------|------|---------------|
-| **Memory** | MemPalace | MCP config, context sync, auto-mine via Makefile |
+| **Memory** | MemPalace | MCP config, context sync, `./keel memory mine` |
 | **Workflow** | gstack | Tier-to-sprint mapping, PR template references |
 | **Runtime** | Caliper / AgentSteer | Hook installation, convention export |
 | **Merge Gates** | agent-guardrails / roborev | Protected paths from tier system |
@@ -41,30 +41,31 @@ KEEL does not replace these tools. It gives them a foundation to stand on and ma
 ### New project
 
 ```bash
-pip install copier
-copier copy gh:ehowardtillit/keel my-project
+curl -sL https://raw.githubusercontent.com/ehowardtillit/keel/main/install.sh | sh -s my-project
 cd my-project
-git init && git add -A && git commit -m "feat: init from KEEL scaffold"
-./bootstrap.sh
 ```
 
 ### Existing project
 
 ```bash
+curl -sL https://raw.githubusercontent.com/ehowardtillit/keel/main/install.sh | sh
+```
+
+The installer handles Copier, scaffolding, git init, and `./keel install` in one shot. If you prefer manual control:
+
+```bash
 pip install copier
-copier copy gh:ehowardtillit/keel .
-./bootstrap.sh
+copier copy gh:ehowardtillit/keel my-project
+cd my-project && ./keel install
 ```
 
 ### Pull KEEL updates
 
 ```bash
-copier update
-# or
-make keel-regenerate
+./keel regenerate
 ```
 
-Copier diffs what changed in KEEL since your last apply and merges cleanly. Your customizations are preserved.
+Reads your `keel.yml` and re-runs Copier with the current config. Your customizations are preserved.
 
 ---
 
@@ -118,31 +119,56 @@ ci_extra_jobs:
     run: "k6 run tests/smoke.js"
 ```
 
-Edit `keel.yml`, run `make keel-regenerate`, and KEEL regenerates your CI pipelines, pre-commit hooks, Makefile targets, agent instructions, and tool configs to match.
+Edit `keel.yml`, run `./keel regenerate`, and KEEL regenerates your CI pipelines, pre-commit hooks, agent instructions, and tool configs to match.
 
 ```bash
-make keel-status       # What's configured
-make keel-validate     # Check config consistency
-make keel-diff         # Preview changes
-make keel-regenerate   # Apply changes
+./keel status          # What's configured
+./keel validate        # Check config consistency
+./keel diff            # Preview changes
+./keel regenerate      # Apply changes
+```
+
+The CLI is also the primary interface for daily development:
+
+```bash
+./keel lint            # Run all linters (or ./keel lint --lang python)
+./keel test            # Run all tests (or ./keel test --lang go)
+./keel format          # Auto-format code
+./keel security-scan   # Run security scanners
+./keel hooks install   # Install pre-commit hooks
+./keel context refresh # Update AI context files
+./keel memory status   # MemPalace status (when enabled)
+./keel memory search "auth flow"  # Search MemPalace
 ```
 
 ---
 
 ## Bring Your Own Methodology
 
-KEEL ships with a default workflow (S/A/B/C tiers). If your organization already has an engineering methodology, set `methodology.type: "custom"`:
+KEEL ships with a default workflow (S/A/B/C tiers). If your organization already has an engineering methodology — playbooks, runbooks, compliance frameworks, agent instructions, branching policies — point KEEL at it:
 
 ```yaml
 methodology:
   type: "custom"
   branching: "gitflow"
-  skip_agent_instructions: true   # your methodology provides agent instructions
+  skip_agent_instructions: true
+  source: "git@github.com:org/your-methodology.git"
+  path: ".methodology"
+  init: "setup/init.sh"
+  version: "v2.0.0"
 ```
 
-This strips KEEL's workflow content from all generated files and keeps only the infrastructure: CI pipelines, pre-commit hooks, Makefile targets, tool wiring, context file management. Your methodology provides the workflow, guardrails, and agent instructions.
+Then `./keel install` handles everything:
 
-This is how KEEL works as a foundation layer -- it doesn't compete with your process, it provides the plumbing underneath it.
+1. Bootstraps language toolchains
+2. Clones your methodology as a git submodule, pins to the version tag, runs its init script
+3. Installs pre-commit hooks
+4. Sets up stack tools (MemPalace, gstack, etc.)
+5. Generates context files
+
+When `methodology.type` is `"custom"`, KEEL strips its own workflow content — tiers, commit conventions, PR template checkboxes, agent instructions — and keeps only infrastructure. Your methodology provides the process; KEEL provides the plumbing.
+
+This works with any methodology that ships as a git repo: enterprise engineering foundations, compliance frameworks, team playbooks, or org-wide standards. KEEL doesn't compete with your process — it gives it CI, hooks, a CLI, and tool wiring for free.
 
 ---
 
@@ -154,7 +180,7 @@ KEEL asks these questions during `copier copy` (and stores them in `keel.yml`):
 
 **Methodology:** built-in S/A/B/C tiers or custom (bring your own), branching model (simple/gitflow/trunk), agent instruction generation (on/off)
 
-**Languages:** Python, TypeScript, Go, Rust, PHP, Elixir/Erlang (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and Makefile targets)
+**Languages:** Python, TypeScript, Go, Rust, PHP, Elixir/Erlang (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and CLI commands)
 
 **Agent targets:** Claude Code (CLAUDE.md), Cursor (.cursor/rules/keel.mdc), GitHub Copilot (copilot-instructions.md), OpenAI Codex (AGENTS.md) -- all generated from the same guardrails, each in its native format
 
@@ -203,7 +229,7 @@ keel/
 │   ├── plans/                     # Implementation plans
 │   └── implementations/           # Post-implementation records
 ├── .pre-commit-config.yaml        # Multi-language guardrails
-├── Makefile                       # Language-specific + context targets
+├── keel                           # Engineering Stack CLI
 ├── bootstrap.sh                   # One-shot stack setup
 ├── CONTRIBUTING.md                # Multi-tool workflow guide
 └── renovate.json                  # Renovate config (if selected)
@@ -260,7 +286,7 @@ When `mempalace_enabled` is true, KEEL configures:
 
 - **MCP server** wired to Claude Code via `.mcp.json`
 - **bootstrap.sh** installs MemPalace, initializes the palace, mines the project
-- **Makefile** gains `context-refresh-live` (syncs MemPalace to flat files), `memory-status`, `memory-mine`
+- **CLI** gains `./keel context live` (syncs MemPalace to flat files), `./keel memory status`, `./keel memory mine`
 - **Agent instructions** include the MemPalace memory protocol (search before assuming, write diary after sessions)
 - **CI** runs `mempalace mine` on merges to main
 
@@ -311,7 +337,7 @@ copier update  # latest
 
 AGPL-3.0 -- see [LICENSE](LICENSE) and [LICENSE-FAQ.md](LICENSE-FAQ.md).
 
-**Your projects are yours.** KEEL is a template. The generated output (CI pipelines, pre-commit configs, Makefiles, documentation) is your project, licensed however you choose. AGPL applies to KEEL itself, not to projects you create with it.
+**Your projects are yours.** KEEL is a template. The generated output (CI pipelines, pre-commit configs, CLI, documentation) is your project, licensed however you choose. AGPL applies to KEEL itself, not to projects you create with it.
 
 Commercial licensing available -- contact the maintainers.
 

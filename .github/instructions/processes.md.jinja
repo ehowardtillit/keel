@@ -1,0 +1,96 @@
+# Processes
+
+## Delegation Rules
+
+- Main conversation thread is for reporting, discussing, deciding, and delegating
+- Delegate implementation to sub-tasks when your agent supports it
+- Different agents have different delegation models:
+
+| Agent | How to delegate |
+|-------|----------------|
+| Claude Code | Use the Task tool for complex multi-step work |
+| Codex | Use AGENTS.md-based orchestration |
+| Other | Follow your agent's delegation patterns |
+
+- Pre-gather raw data with bash, feed to agents as context
+
+---
+{% if not custom_methodology %}
+
+## Documentation as Byproduct
+
+Every workflow step naturally produces a document -- documentation is never a separate task:
+
+| Workflow Step | Document Produced |
+|--------------|-------------------|
+| Analysis (Tier S) | `docs/analysis/NNN-<topic>.md` |
+| Architecture decision | `docs/decisions/NNN-<title>.md` (ADR) |
+| Planning (Tier S/A/B) | `docs/plans/NNN-<title>.md` |
+| Implementation (Tier S/A/B) | `docs/implementations/NNN-<title>.md` |
+| Testing | Coverage reports |
+| Module changes | `.github/context/` files |
+| Deployment | `CHANGELOG_RECENT.md` (auto from git log) |
+
+**No standalone "write documentation" tasks.** If docs are stale, the workflow step that should have produced them was skipped.
+
+{% endif %}
+## Orchestration Scripts
+
+For tasks with more than 10 steps, create a temporary orchestration script:
+
+```bash
+#!/bin/bash
+# scripts/orchestrate-<task-name>.sh
+set -euo pipefail
+
+echo "=== Step 1/N: <description> ==="
+# ... commands ...
+
+echo "=== Step 2/N: <description> ==="
+# ... commands ...
+```
+
+**Rules:**
+- Place in `scripts/orchestrate-<name>.sh`
+- Delete after task is complete -- these are temporary build scaffolding
+- Each step should be idempotent (safe to re-run)
+- Use `set -euo pipefail` for fail-fast behavior
+
+---
+
+## Testing Requirements
+
+### Test Phases (ordered -- never skip earlier phases)
+
+| Phase | What | When to run |
+|-------|------|-------------|
+| **Unit** | Test individual functions/methods in isolation | Before and after every change |
+| **Integration** | Test service interactions, DB queries, API calls | Before merging |
+| **E2E** | Full user flows through the actual application | Before release |
+| **Smoke** | Baseline validation under minimal load | After deployment |
+| **Stress** | Find breaking points under heavy load | Before major releases |
+
+### Test Naming and Organization
+
+- **Naming:** `test_<function>_<scenario>` (e.g., `test_create_user_duplicate_email`)
+- **Contract tests:** For external API integrations
+- **Coverage:** Define your targets in CI configuration
+- **Workflow:** Run existing tests → make changes → add new tests → run all again
+
+{% if not custom_methodology %}
+### Performance Targets (when applicable)
+
+| Metric | Target |
+|--------|--------|
+| P50 latency | < 100ms |
+| P95 latency | < 250ms |
+| P99 latency | < 500ms |
+| Error rate under normal load | < 0.1% |
+
+### Test Data Rules
+
+- Use factories or builders, not static fixtures
+- Isolate test data per test run (unique prefixes or UUIDs)
+- Clean up after integration/E2E runs
+- Never use production data -- generate synthetic data matching schema constraints
+{% endif %}

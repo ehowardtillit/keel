@@ -6,7 +6,7 @@ KEEL is licensed under AGPL-3.0. See [LICENSE](LICENSE) for the full text.
 
 ## Does AGPL apply to my project?
 
-No. KEEL is a **template** — it generates files (CI pipelines, pre-commit configs, Makefiles, documentation structure) that become part of YOUR project. The generated output is yours to license however you choose. AGPL applies to KEEL itself (the template engine and its source), not to the projects you create with it.
+No. KEEL is a **template** — it generates files (CI pipelines, pre-commit configs, CLI, documentation structure) that become part of YOUR project. The generated output is yours to license however you choose. AGPL applies to KEEL itself (the template engine and its source), not to the projects you create with it.
 
 This is analogous to how a code generator's license doesn't infect generated code. Your `copier.yml` answers determine YOUR project's license.
 

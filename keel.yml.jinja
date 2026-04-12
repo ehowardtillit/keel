@@ -1,6 +1,6 @@
 # ⚓ keel.yml -- Engineering Stack Manifest
 # This file declares your project's engineering infrastructure.
-# Edit it, then run: make keel-regenerate
+# Edit it, then run: ./keel regenerate
 #
 # Think of this as docker-compose for your engineering process:
 # you declare WHAT you want, KEEL generates the plumbing.
@@ -23,12 +23,17 @@ methodology:
   type: "{% if custom_methodology %}custom{% else %}keel{% endif %}"
   branching: "{{ branching_model }}"
   skip_agent_instructions: {{ skip_agent_instructions | lower }}
+  # External methodology (uncomment to configure):
+  # source: "git@github.com:org/your-methodology.git"  # git URL
+  # path: ".methodology"                                # local submodule path
+  # init: "setup/init.sh"                               # post-install script (relative to path)
+  # version: "v1.0.0"                                   # git tag or branch to pin
 
 # ─── Languages ───────────────────────────────────────────────────────────────
 # Enable the languages your project uses. Each one activates:
 #   - CI pipeline jobs (lint, test, security scan)
 #   - Pre-commit hooks (TODO/FIXME blocking, language linters)
-#   - Makefile targets (lint-<lang>, test-<lang>)
+#   - CLI commands (./keel lint --lang X, ./keel test --lang X)
 #   - Dependabot/Renovate ecosystem config
 #   - Bootstrap toolchain checks
 
@@ -79,6 +84,11 @@ languages:
   elixir:
     enabled: false
 {%- endif %}
+{%- if lang_java %}
+  java:
+    enabled: true
+    version: "{{ java_version }}"
+{%- endif %}
 
 # ─── Agents ──────────────────────────────────────────────────────────────────
 # When methodology.skip_agent_instructions is false, KEEL generates
@@ -93,7 +103,7 @@ agents:
 
 # ─── Stack ───────────────────────────────────────────────────────────────────
 # Declare which tools to wire. KEEL generates configs, bootstrap steps,
-# Makefile targets, and CI jobs for each enabled tool.
+# CLI commands, and CI jobs for each enabled tool.
 
 stack:
   memory:

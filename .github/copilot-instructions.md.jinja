@@ -54,7 +54,7 @@ Details, ticket creation, and ceremony steps: `.github/instructions/workflow.md`
 
 ### NEVER
 - Drop a database or schema
-- Delete infrastructure files (Makefile, CI, deploy scripts)
+- Delete infrastructure files (CI workflows, deploy scripts, `keel`, `keel.yml`)
 - Push directly to main
 - Skip tests to save time
 - Store secrets in code or commit .env with real credentials
@@ -106,9 +106,12 @@ Pre-gather raw data with bash, feed to agents as context.
 
 | Topic | File |
 |-------|------|
-| Full tier workflows, ticket creation, ceremonies | `.github/instructions/workflow.md` |
 | All guardrails + LLM verification protocol | `.github/instructions/guardrails.md` |
+| Code review checklist (7 dimensions) | `.github/instructions/code-review.md` |
+{%- if not custom_methodology %}
+| Tier workflows, ticket creation, ceremonies | `.github/instructions/workflow.md` |
+{%- endif %}
 | Prompt patterns (/analyze, /plan, /implement, etc.) | `.github/instructions/prompts.md` |
-| Delegation, orchestration, API-first, testing, docs | `.github/instructions/processes.md` |
+| Delegation, orchestration, testing | `.github/instructions/processes.md` |
 
 {% endif %}

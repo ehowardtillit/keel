@@ -40,7 +40,7 @@ repos:
     hooks:
       # Customize: restrict to your source directories
       - id: bandit
-        args: [-ll, --skip, B101, -r]
+        args: [-ll, --skip, B101]
 {% if codeguard_enabled %}
         # Note: CodeGuard also runs security rules in CI; tune bandit paths to avoid overlap.
 {% endif %}
@@ -54,14 +54,14 @@ repos:
 {% endif %}
 {% endif %}
 
-{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir %}
+{% if lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java %}
   - repo: local
     hooks:
 {% if lang_python %}
       - id: no-todo-fixme
         name: no-todo-fixme (python)
         language: system
-        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types: [python]
 
       - id: no-silenced-exceptions
@@ -104,41 +104,66 @@ repos:
       - id: no-todo-fixme-ts
         name: no-todo-fixme (typescript)
         language: system
-        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types: [ts, tsx]
 
       - id: no-console-log
         name: no-console-log
         language: system
         entry: bash -c 'if grep -nHE "console\.log" -- "$@"; then echo "❌ console.log left in code — remove before committing"; exit 1; fi' --
-        types: [ts, tsx]
+        types_or: [javascript, jsx, ts, tsx]
 {% endif %}
 {% if lang_go %}
       - id: no-todo-fixme-go
         name: no-todo-fixme (go)
         language: system
-        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types: [go]
 {% endif %}
 {% if lang_rust %}
       - id: no-todo-fixme-rust
         name: no-todo-fixme (rust)
         language: system
-        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types: [rust]
 {% endif %}
 {% if lang_php %}
       - id: no-todo-fixme-php
         name: no-todo-fixme (php)
         language: system
-        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types: [php]
 {% endif %}
 {% if lang_elixir %}
       - id: no-todo-fixme-elixir
         name: no-todo-fixme (elixir)
         language: system
-        entry: bash -c 'if grep -nHE "TODO|FIXME|HACK|XXX|PLACEHOLDER" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
         types_or: [elixir]
+{% endif %}
+{% if lang_go %}
+      - id: gofmt
+        name: gofmt
+        language: system
+        entry: gofmt -l -w
+        types: [go]
+{% endif %}
+{% if lang_typescript %}
+      # TypeScript formatting: configure prettier via package.json scripts
+{% endif %}
+{% if lang_elixir %}
+      - id: mix-format
+        name: mix format
+        language: system
+        entry: mix format --check-formatted
+        types_or: [elixir]
+        # Requires mix_audit hex package for mix deps.audit
+{% endif %}
+{% if lang_java %}
+      - id: no-todo-fixme-java
+        name: no-todo-fixme (java/kotlin)
+        language: system
+        entry: bash -c 'if grep -nHE "\\bTODO\\b|\\bFIXME\\b|\\bHACK\\b|\\bXXX\\b|\\bPLACEHOLDER\\b" -- "$@"; then echo "❌ TODO/FIXME/HACK/XXX/PLACEHOLDER markers found — resolve before committing"; exit 1; fi' --
+        types_or: [java, kotlin]
 {% endif %}
 {% endif %}

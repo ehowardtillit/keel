@@ -1,4 +1,5 @@
 # Workflow Details
+{% if not custom_methodology %}
 
 ## Tiered Workflow (S/A/B/C)
 
@@ -51,12 +52,13 @@ gh issue create \
 Tier B and C changes don't need a ticket -- the PR is the record.
 
 ---
+{% endif %}
 
-## Mandatory Steps (ALL Tiers)
+## Mandatory Steps
 
-These run on EVERY commit regardless of tier -- mechanically enforced:
+These run on EVERY commit -- mechanically enforced:
 
-- **Pre-commit:** ruff (lint + format), bandit (security), semgrep (OWASP), detect-secrets
-- **CI:** CodeQL (GitHub-native SAST), pytest with coverage, OpenAPI drift check
+- **Pre-commit:** linters, security scanners, detect-secrets
+- **CI:** tests with coverage, security scanning
 - **Tests must pass -- no exceptions**
-- **Conventional commits:** `feat|fix|docs|refactor|test|chore|ci|perf: description`
+{% if not custom_methodology %}- **Conventional commits:** `feat|fix|docs|refactor|test|chore|ci|perf: description`{% endif %}

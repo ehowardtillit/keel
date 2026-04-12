@@ -266,7 +266,7 @@ fi
 
 info "⚓ Customization checklist"
 echo "  • Agent instructions: CLAUDE.md / AGENTS.md / .cursor/rules/keel.mdc / .github/copilot-instructions.md"
-echo "  • Context files: .github/context/MODULE_MAP.md, .github/context/CHANGELOG_RECENT.md — run make context-refresh after changes"
+echo "  • Context files: .github/context/MODULE_MAP.md, .github/context/CHANGELOG_RECENT.md — run ./keel context refresh after changes"
 echo "  • Source dirs for tooling: {{ source_dirs }}"
 {% if dependency_updates == "dependabot" %}
 echo "  • Dependency updates: Dependabot — tune .github/dependabot.yml"

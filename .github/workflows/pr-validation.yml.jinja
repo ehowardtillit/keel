@@ -5,6 +5,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: read
@@ -14,9 +18,12 @@ jobs:
     name: PR Requirements
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+{% endraw %}
+{%- if not custom_methodology %}
+{% raw %}
       - name: Check PR Title (Conventional Commits)
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -26,6 +33,9 @@ jobs:
             exit 1
           fi
           echo "✅ PR title OK"
+{% endraw %}
+{%- endif %}
+{% raw %}
       - name: Check PR Description
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -56,7 +66,7 @@ jobs:
     name: Detect Change Tier
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - name: Classify tier

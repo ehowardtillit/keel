@@ -7,53 +7,56 @@
 ```bash
 git clone <your-repo-url>
 cd {{ project_name | lower | replace(' ', '-') }}
-./bootstrap.sh
-{% if lang_python %}source .venv/bin/activate
-{% endif %}```
+./keel install
+```
 
 ## Development
 
 ```bash
-make help              # Show all targets
-{% if lang_python %}make lint              # Lint Python with ruff
-make test              # Run Python tests
-make test-coverage     # Tests + coverage report
-make security-scan     # Bandit scan
-{% endif %}{% if lang_typescript %}make lint-ts           # Lint TypeScript
-make test-ts           # Run TypeScript tests
-{% endif %}{% if lang_go %}make lint-go           # Lint Go
-make test-go           # Run Go tests
-{% endif %}{% if lang_rust %}make lint-rust          # Lint Rust
-make test-rust         # Run Rust tests
-{% endif %}{% if lang_php %}make lint-php          # Lint PHP
-make test-php          # Run PHP tests
-{% endif %}{% if lang_elixir %}make lint-elixir        # Lint Elixir
-make test-elixir       # Run Elixir tests
-{% endif %}make lint-all          # Run all linters
-make test-all          # Run all tests
-make context-refresh   # Update AI context files
-make hooks-run         # Run all pre-commit hooks
-{% if mempalace_enabled %}make memory-status     # MemPalace status
-make context-refresh-live  # Sync MemPalace to context files
+./keel status             # Show stack configuration
+./keel lint               # Run all linters
+./keel test               # Run all tests
+./keel format             # Auto-format code
+./keel security-scan      # Run security scanners
+./keel hooks run          # Run pre-commit hooks
+./keel context refresh    # Update AI context files
+{% if mempalace_enabled %}./keel memory status      # MemPalace status
+./keel context live       # Sync MemPalace to context files
 {% endif %}```
+
+Filter by language:
+
+```bash
+./keel lint --lang python
+./keel test --lang go
+```
+
+## Stack Configuration
+
+Edit `keel.yml` to change your engineering stack, then regenerate:
+
+```bash
+./keel status             # What's configured now
+./keel diff               # Preview changes
+./keel regenerate         # Apply changes
+```
 
 ## Project Structure
 
 ```
 {{ project_name | lower | replace(' ', '-') }}/
+├── keel.yml                         # Stack manifest
+├── keel                             # CLI
 ├── {{ source_dirs }}                # Source code
 ├── tests/                           # Test suite
 ├── .github/
 │   ├── instructions/                # Workflow playbooks
 │   ├── context/                     # AI agent context files
 │   └── workflows/                   # CI/CD pipelines
-├── docs/                            # Documentation (analysis, decisions, plans, implementations)
-{% if lang_python %}├── .pre-commit-config.yaml          # Mechanical guardrails
-{% endif %}├── Makefile                         # Build targets
-├── bootstrap.sh                     # One-time setup
+├── docs/                            # Documentation
 └── CONTRIBUTING.md                  # How to contribute
 ```
-
+{% if not custom_methodology %}
 ## Workflow
 
 This project uses the KEEL tiered workflow. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
@@ -66,6 +69,7 @@ This project uses the KEEL tiered workflow. See [CONTRIBUTING.md](CONTRIBUTING.m
 | **C** | Docs, typos | Auto-merge if CI green |
 {% if gstack_enabled %}
 Use `/review` before PRs and `/ship` to land changes.
+{% endif %}
 {% endif %}
 ## Contributing
 

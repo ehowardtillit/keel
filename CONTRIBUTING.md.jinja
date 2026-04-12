@@ -2,10 +2,10 @@
 
 ## Getting started
 
-Run the project bootstrap once from the repository root:
+Run install once from the repository root:
 
 ```bash
-./bootstrap.sh
+./keel install
 ```
 
 Manual setup (if you prefer not to use the script):
@@ -28,32 +28,29 @@ Manual setup (if you prefer not to use the script):
 {% if lang_elixir %}
 - **Elixir:** install Elixir/Erlang, then `mix deps.get`. Add `credo` and `sobelow` to your `mix.exs` dev deps.
 {% endif %}
+{% if lang_java %}
+- **Java/Kotlin:** install JDK **{{ java_version }}** and Maven, then `mvn compile` to verify the build.
+{% endif %}
 
 ## Common commands
 
-Run `make help` for the full target list. Typical targets:
+Run `./keel` for full usage. Key commands:
 
-- `make bootstrap` — first-time setup (`./bootstrap.sh`)
-{% if lang_python %}- `make lint` — Python (ruff) under `{{ source_dirs }}`
+- `./keel install` — full setup (bootstrap + methodology + hooks + tools)
+- `./keel lint` — all enabled linters
+- `./keel lint --lang python` — lint only Python
+- `./keel test` — all enabled test suites
+- `./keel test --lang go` — test only Go
+- `./keel format` — auto-format code
+- `./keel security-scan` — run security scanners
+- `./keel hooks install` — install pre-commit hooks
+- `./keel hooks run` — run pre-commit hooks on all files
+- `./keel context refresh` — regenerate `.github/context/` summaries
+{% if mempalace_enabled %}- `./keel context live` / `./keel memory status` — MemPalace integration (see below)
 {% endif %}
-{% if lang_typescript %}- `make lint-ts` — TypeScript (ESLint)
-{% endif %}
-{% if lang_go %}- `make lint-go` — Go (golangci-lint)
-{% endif %}
-{% if lang_rust %}- `make lint-rust` — Rust (Clippy)
-{% endif %}
-{% if lang_php %}- `make lint-php` — PHP (PHP_CodeSniffer)
-{% endif %}
-{% if lang_elixir %}- `make lint-elixir` — Elixir (Credo)
-{% endif %}
-- `make lint-all` — all enabled language linters
-- `make test-all` — all enabled test suites
-- `make context-refresh` — regenerate `.github/context/` summaries
-{% if mempalace_enabled %}- `make context-refresh-live` / `make memory-status` — MemPalace integration (see below)
-{% endif %}
-- `make hooks-install` / `make hooks-run` — install or run pre-commit on all files
 
-## Development workflow (tier S / A / B / C)
+## Development workflow
+{% if not custom_methodology %}
 
 Every change goes through a branch and PR. **Tier** sets how much ceremony is required.
 
@@ -65,11 +62,16 @@ Every change goes through a branch and PR. **Tier** sets how much ceremony is re
 | **C** | Docs, comments, typos, log text | PR | Auto-merge if CI is green |
 
 **Always:** pre-commit and CI run; conventional commits; no direct pushes to the default branch. Tier is usually inferred from the diff; override in the PR if needed.
+{% else %}
+
+Every change goes through a branch and PR. Pre-commit hooks and CI run on every push. See your methodology documentation for workflow details.
+{% endif %}
 
 ## Branching policy
 
 - **`main`** is protected — use pull requests, not direct pushes.
 - Use prefixes such as `feat/`, `fix/`, `chore/`, and `docs/` with a short description (for example `feat/auth-rate-limit`).
+{% if not custom_methodology %}
 
 ## Commit messages
 
@@ -80,10 +82,12 @@ If a commit was written with substantial help from an AI assistant, include a tr
 ```
 Co-authored-by: Name <email@example.com>
 ```
+{% endif %}
 
 ## Pre-commit hooks
 
-Hooks run on every commit (install with `make hooks-install` or `pre-commit install`).
+Hooks run on every commit (install with `./keel hooks install` or `pre-commit install`).
+{% if not custom_methodology %}
 
 - **General:** YAML/JSON checks, large-file guard, branch protection (`main`/`master`), trailing whitespace, end-of-file fixer, `detect-secrets` against `.secrets.baseline`.
 {% if lang_python %}
@@ -98,9 +102,11 @@ Hooks run on every commit (install with `make hooks-install` or `pre-commit inst
 {% if lang_python %}
 - **Python (local guards):** no bare `except` / `except: pass` patterns that silence errors.
 {% endif %}
+{% endif %}
 
-Run everything locally with `pre-commit run --all-files` or `make hooks-run`.
+Run everything locally with `pre-commit run --all-files` or `./keel hooks run`.
 
+{% if not custom_methodology %}
 ## AI-generated code
 
 Treat generated code like any other contribution: it must be complete, wired, and reviewed.
@@ -113,11 +119,12 @@ Treat generated code like any other contribution: it must be complete, wired, an
 - Match existing project patterns (structure, naming, error handling).
 
 **Quick verification before you push:** imports resolve, tests cover real behavior, and you ran the linters/tests for the languages you touched.
+{% endif %}
 
 {% if mempalace_enabled %}
 ## MemPalace
 
-Project context is stored in MemPalace. Check status with `make memory-status` and sync live context with `make context-refresh-live` when you need agents to see the latest state.
+Project context is stored in MemPalace. Check status with `./keel memory status` and sync live context with `./keel context live` when you need agents to see the latest state.
 {% endif %}
 
 {% if gstack_enabled %}
@@ -129,25 +136,28 @@ Use **`/review`** before opening a pull request, and **`/ship`** when you are re
 ## Testing
 
 {% if lang_python %}
-- **Python:** `make test` or `pytest` as configured under `tests/`.
+- **Python:** `./keel test --lang python` or `pytest` under `tests/`.
 {% endif %}
 {% if lang_typescript %}
-- **TypeScript:** `make test-ts` (Vitest).
+- **TypeScript:** `./keel test --lang typescript` or `npx vitest run`.
 {% endif %}
 {% if lang_go %}
-- **Go:** `make test-go` or `go test ./...`.
+- **Go:** `./keel test --lang go` or `go test ./...`.
 {% endif %}
 {% if lang_rust %}
-- **Rust:** `make test-rust` or `cargo test`.
+- **Rust:** `./keel test --lang rust` or `cargo test`.
 {% endif %}
 {% if lang_php %}
-- **PHP:** `make test-php` or `vendor/bin/phpunit`.
+- **PHP:** `./keel test --lang php` or `vendor/bin/phpunit`.
 {% endif %}
 {% if lang_elixir %}
-- **Elixir:** `make test-elixir` or `mix test`.
+- **Elixir:** `./keel test --lang elixir` or `mix test`.
 {% endif %}
-{% if not (lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir) %}
-Add tests appropriate to your stack and wire them into `make test-all` when you introduce tooling.
+{% if lang_java %}
+- **Java/Kotlin:** `./keel test --lang java` or `mvn test`.
+{% endif %}
+{% if not (lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java) %}
+Add tests appropriate to your stack. The `./keel test` command picks up all enabled languages automatically.
 {% endif %}
 
 ## Code style
@@ -170,14 +180,19 @@ Add tests appropriate to your stack and wire them into `make test-all` when you 
 {% if lang_elixir %}
 - **Elixir:** `mix format` for formatting; `mix credo` for style; follow OTP/Phoenix conventions.
 {% endif %}
+{% if lang_java %}
+- **Java/Kotlin:** Checkstyle for style; follow existing package and directory conventions.
+{% endif %}
 
 ## Pull request checklist
 
-Use [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) when opening a PR. It captures tier, testing notes, context updates, and stack verification.
+Use [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) when opening a PR.
+{% if not custom_methodology %}
 
 ## Architecture decisions (Tier S)
 
 Tier **S** changes (schema, security, infrastructure) need an analysis pass and an ADR **before** implementation. Copy `docs/decisions/000-template.md` to a new numbered file and record the decision there.
+{% endif %}
 
 ## Versioning
 

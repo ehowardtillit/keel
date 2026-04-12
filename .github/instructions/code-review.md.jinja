@@ -1,0 +1,73 @@
+{% if not custom_methodology %}
+# Code Review Checklist
+
+Use this checklist when reviewing PRs. Not every dimension applies to every change -- focus on what's relevant.
+
+## 1. Correctness
+
+- [ ] Does the code do what it claims?
+- [ ] Are edge cases handled (null, empty, boundary values)?
+- [ ] Are error paths tested?
+- [ ] Does async code handle rejections/exceptions?
+- [ ] Are race conditions considered for concurrent operations?
+
+## 2. Security
+
+- [ ] No sensitive data in logs (passwords, tokens, PII, API keys)
+- [ ] Input validated on all endpoints / entry points
+- [ ] Authentication required where expected
+- [ ] Authorization checked at resource level (not just endpoint level)
+- [ ] No SQL/NoSQL injection vectors (parameterized queries)
+- [ ] No SSRF vectors (URL inputs validated)
+- [ ] Rate limiting configured for public endpoints
+- [ ] Dependencies scanned for CVEs
+
+## 3. Performance
+
+- [ ] No N+1 query patterns
+- [ ] Pagination implemented for list endpoints
+- [ ] Appropriate use of caching (and invalidation strategy)
+- [ ] Database indexes considered for new queries
+- [ ] No blocking operations on async event loops
+
+## 4. Observability
+
+- [ ] Structured logging with context (request ID, user, operation)
+- [ ] Health check endpoint updated if new dependencies added
+- [ ] Errors logged with enough context to diagnose
+
+## 5. Testing
+
+- [ ] Unit tests for new logic
+- [ ] Integration tests for new API endpoints or service interactions
+- [ ] Test names are descriptive (`test_<function>_<scenario>`)
+- [ ] Mocks are realistic (don't mock away the logic under test)
+- [ ] Tests fail when implementation is broken (no test theater)
+
+## 6. Database & Migrations
+
+- [ ] Migration files include both up and down operations
+- [ ] Non-reversible migrations clearly documented with rollforward strategy
+- [ ] Lock impact assessed for large tables
+- [ ] Expand-contract pattern used for non-additive schema changes
+
+## 7. Contract Conformance (API projects)
+
+- [ ] API spec updated before implementation (contract-first)
+- [ ] No breaking changes without version bump
+- [ ] DTOs / schemas match the spec (types, constraints, required fields)
+- [ ] Error responses follow a consistent format
+
+## Review Severity Levels
+
+| Level | Action | Examples |
+|-------|--------|---------|
+| **Blocker** | Must fix before merge | Security vulnerability, data leak, broken auth, silenced errors |
+| **Major** | Should fix before merge | Missing tests, N+1 queries, unvalidated input |
+| **Minor** | Fix in follow-up | Naming improvements, additional edge case tests |
+| **Nit** | Author's discretion | Style preferences, alternative approaches |
+{% else %}
+# Code Review
+
+See your methodology's code review process.
+{% endif %}

@@ -1,0 +1,195 @@
+# Guardrails
+
+## Guardrails: NEVER Do
+
+Hard blocks. Violating any of these requires explicit user override:
+
+- NEVER drop a database or schema (`DROP DATABASE`, `DROP SCHEMA`)
+- NEVER delete infrastructure files (CI workflows, deploy scripts, `keel`, `keel.yml`, migration configs)
+- NEVER push directly to main -- always branch + PR
+- NEVER skip tests to save time
+- NEVER store secrets in code or commit `.env` files with real credentials
+- NEVER use `allow_origins=["*"]` in CORS configuration
+- NEVER run destructive DDL without a migration plan
+- NEVER delete data in production without backup confirmation
+- NEVER add dependencies without checking for CVEs
+- NEVER auto-run migrations on deploy without review for destructive operations
+- NEVER auto-deploy to production environments
+
+---
+
+## Guardrails: ALWAYS Do
+
+- ALWAYS run existing tests before AND after changes
+- ALWAYS update `.github/context/` files if your changes affect architecture, API surface, or module structure
+- ALWAYS use parameterized queries -- never string interpolation for SQL
+- ALWAYS follow OWASP Top 10 best practices
+- ALWAYS validate user input at the boundary layer
+
+---
+
+## Guardrails: LLM / AI-Generated Code
+
+AI assistants produce five categories of failure. Each has specific detection rules.
+
+### Category 1: Hallucinations
+
+The most dangerous failure mode -- LLMs invent plausible-sounding things that don't exist:
+
+| Code | Rule | What LLMs do wrong |
+|------|------|---------------------|
+| **H1** | **No phantom imports** -- every import must resolve to a real module | Invent package names (`utils-helpers`, `@project/auth`) |
+| **H2** | **No phantom APIs** -- every method call must have a real implementation | Fabricate methods based on naming conventions (`service.findByEmail()` when only `findById()` exists) |
+| **H3** | **No phantom dependencies** -- every added package must exist in the registry | Generate realistic but non-existent package names |
+| **H4** | **No hallucinated configs** -- every env var or config key must be defined | Invent `DATABASE_BACKUP_URL` without checking `.env.example` |
+| **H5** | **No fabricated framework features** -- decorators, methods, APIs must exist in the pinned version | Mix API surfaces across framework versions |
+
+### Category 2: Incomplete Code
+
+| Code | Rule | What LLMs do wrong |
+|------|------|---------------------|
+| **I1** | **No TODO/FIXME/HACK/XXX/PLACEHOLDER** in committed code | Leave stubs "for later" that ship to production |
+| **I2** | **No stub implementations** -- no methods returning hardcoded values or empty arrays | Scaffold methods with `return []` and move on |
+| **I3** | **No dead code** -- every function, class, and export must be called somewhere | Generate helpers "for later" that are never wired |
+| **I4** | **No disconnected wiring** -- every module, provider, and route must be registered | Create files but forget to register them |
+| **I5** | **No partial error handling** -- no empty catch blocks, no swallowed exceptions | Write `catch (e) {}` or `except: pass` |
+
+### Category 3: Code Quality Traps
+
+| Code | Rule | What LLMs do wrong |
+|------|------|---------------------|
+| **Q1** | **No copy-paste drift** -- similar code must be consistent | Copy patterns across endpoints with subtle inconsistencies |
+| **Q2** | **No over-engineering** -- YAGNI: no interfaces with one implementor, no factories for one type | Add abstraction layers nobody asked for |
+| **Q3** | **No silent type coercion** -- `as any`, non-null assertions (`!.`) need justification | Bypass type errors with casts instead of fixing them |
+| **Q4** | **No test theater** -- tests must fail when implementation is broken | Write tests that look complete but verify nothing meaningful |
+| **Q5** | **No phantom tests** -- every test file must be discovered by the test runner | Create test files not included in test suite config |
+
+### Category 4: Dependency Traps
+
+| Code | Rule | What LLMs do wrong |
+|------|------|---------------------|
+| **D1** | **No version conflicts** -- new deps must be compatible with existing packages | Add incompatible dependency versions |
+| **D2** | **No deprecated APIs** -- LLMs train on old data | Use removed or deprecated API calls from older versions |
+| **D3** | **No unnecessary dependencies** -- don't add packages for things stdlib handles | Add `lodash` for a `.map()`, `uuid` when `crypto.randomUUID()` exists |
+
+### Category 5: Output Quality (for Analysis / Research Agents)
+
+| Code | Rule |
+|------|------|
+| **O1** | **Structured output** -- produce Markdown with sections, tables, diagrams; not free-form prose |
+| **O2** | **Cite evidence** -- every finding must reference specific files and line ranges |
+| **O3** | **Actionable recommendations** -- every issue gets a concrete remediation step |
+| **O4** | **Severity classification** -- use Critical / High / Medium / Low; never vague terms |
+| **O5** | **Distinguish N/A from missing** -- "doesn't apply" is different from "should exist but doesn't" |
+
+---
+
+## Verification Protocol
+{%- if lang_python %}
+
+### Python
+
+```bash
+# H1-H3: Phantom imports and dependencies
+python -c "from <module> import <name>"    # for each new import
+pip install --dry-run -r requirements.txt  # all deps resolve
+
+# I1: No stubs
+rg 'TODO|FIXME|HACK|XXX|PLACEHOLDER' <changed_files>
+
+# I5: No silenced exceptions
+rg 'except.*pass$|except:$' <changed_files>
+
+# H4: No hallucinated config
+rg 'os\.environ|os\.getenv|settings\.' <changed_files>
+# then verify each key exists in .env.example
+
+# Q2: No bloated functions (over 50 lines)
+rg '^def ' <changed_files>
+# check line count of each function body
+
+# D1: Dependency audit
+pip-audit
+```
+{%- endif %}
+{%- if lang_typescript %}
+
+### TypeScript
+
+```bash
+# H1-H3: Phantom imports and dependencies
+tsc --noEmit                              # type check catches phantom imports
+npm ls                                    # no missing/extraneous deps
+
+# I1: No stubs
+rg 'TODO|FIXME|HACK|XXX|PLACEHOLDER' <changed_files>
+
+# Q3: Unsafe type assertions
+rg 'as any|as unknown' <changed_files>   # each must have justification
+
+# Q5: Phantom tests
+npx vitest --list                         # all test files discovered
+
+# D1: Dependency audit
+npm audit
+```
+{%- endif %}
+{%- if lang_go %}
+
+### Go
+
+```bash
+go vet ./...                              # catch phantom imports, type issues
+go test ./... -count=1                    # all tests run and pass
+rg 'TODO|FIXME|HACK|XXX' <changed_files>
+govulncheck ./...                         # dependency audit
+```
+{%- endif %}
+{%- if lang_rust %}
+
+### Rust
+
+```bash
+cargo check                               # type check
+cargo clippy                              # lint
+cargo test                                # all tests pass
+rg 'TODO|FIXME|HACK|XXX|todo!|unimplemented!' <changed_files>
+cargo audit                               # dependency audit
+```
+{%- endif %}
+{%- if lang_php %}
+
+### PHP
+
+```bash
+php -l <changed_files>                    # syntax check
+vendor/bin/phpcs --standard=PSR12 <changed_files>
+rg 'TODO|FIXME|HACK|XXX' <changed_files>
+composer audit                            # dependency audit
+```
+{%- endif %}
+{%- if lang_elixir %}
+
+### Elixir
+
+```bash
+mix compile --warnings-as-errors          # catch phantom modules
+mix credo --strict                        # lint
+rg 'TODO|FIXME|HACK|XXX' <changed_files>
+mix deps.audit                            # dependency audit
+```
+{%- endif %}
+
+### Universal Checks
+
+| Check | What to verify |
+|-------|---------------|
+| No TODOs/FIXMEs | `rg 'TODO\|FIXME\|HACK\|XXX' <files>` returns nothing |
+| No phantom imports | Every import resolves to a real module |
+| No dead functions | Every new function is called/imported somewhere |
+| No silenced errors | No bare except or swallowed exceptions |
+| No bloated functions | No function over 50 lines |
+| No ghost dependencies | Every dependency is actually imported |
+| No hallucinated config | Every env var reference exists in `.env.example` |
+| Tests test behavior | Tests assert real outcomes, not just `assert True` |
+| Code actually runs | Execute the changed code path |

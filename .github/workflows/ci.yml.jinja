@@ -6,16 +6,19 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+concurrency:
+  group: {% raw %}ci-${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   context-staleness:
     name: Context File Freshness
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - name: Check context file freshness
@@ -39,10 +42,14 @@ jobs:
     name: Lint (Python)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '{{ python_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/pip
+          key: {% raw %}pip-${{ hashFiles('**/requirements*.txt') }}{% endraw %}
       - run: pip install ruff==0.15.6
       - name: Ruff lint
         run: ruff check {{ source_dirs }} --ignore E501,F401 --exclude "*/venv/*,*/.venv/*"
@@ -51,10 +58,14 @@ jobs:
     name: Security Scan (Python)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '{{ python_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/pip
+          key: {% raw %}pip-${{ hashFiles('**/requirements*.txt') }}{% endraw %}
       - run: pip install bandit==1.9.4
       - name: Bandit scan
         run: bandit -r {{ source_dirs }} -ll --skip B101 -f txt
@@ -63,10 +74,14 @@ jobs:
     name: Test (Python)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '{{ python_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/pip
+          key: {% raw %}pip-${{ hashFiles('**/requirements*.txt') }}{% endraw %}
       - name: Install dependencies
         run: |
           [ -f requirements.txt ] && pip install -r requirements.txt || true
@@ -83,10 +98,14 @@ jobs:
     name: Dependency Audit (Python)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '{{ python_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/pip
+          key: {% raw %}pip-${{ hashFiles('**/requirements*.txt') }}{% endraw %}
       - run: pip install pip-audit
       - name: Audit dependencies
         run: '[ -f requirements.txt ] && pip-audit -r requirements.txt --desc || echo "No requirements.txt found -- skipping audit"'
@@ -97,11 +116,11 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
         with:
           languages: python
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
 
 {% endif %}
 {% if lang_typescript %}
@@ -109,10 +128,13 @@ jobs:
     name: Lint (TypeScript)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
       - name: ESLint
         run: npx eslint . --max-warnings 0
 
@@ -120,10 +142,13 @@ jobs:
     name: Test (TypeScript)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
       - name: Vitest
         run: npx vitest run
 
@@ -133,11 +158,11 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
         with:
           languages: javascript
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
 
 {% endif %}
 {% if lang_go %}
@@ -145,11 +170,12 @@ jobs:
     name: Lint (Go)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: "1.23"
-      - uses: golangci/golangci-lint-action@v6
+          cache: true
+      - uses: golangci/golangci-lint-action@4afd733a84b2f1a82468f9b0f0c2f27c3d9a2ea0 # v6.5.0
         with:
           version: latest
 
@@ -157,10 +183,11 @@ jobs:
     name: Test (Go)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: "1.23"
+          cache: true
       - name: Go test
         run: go test ./...
 
@@ -170,11 +197,11 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
         with:
           languages: go
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
 
 {% endif %}
 {% if lang_rust %}
@@ -182,10 +209,17 @@ jobs:
     name: Lint (Rust)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e18c1f174b91f20 # stable
         with:
           components: clippy
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: {% raw %}rust-${{ hashFiles('**/Cargo.lock') }}{% endraw %}
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
 
@@ -193,8 +227,15 @@ jobs:
     name: Test (Rust)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e18c1f174b91f20 # stable
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: {% raw %}rust-${{ hashFiles('**/Cargo.lock') }}{% endraw %}
       - name: Cargo test
         run: cargo test
 
@@ -204,8 +245,8 @@ jobs:
     name: Lint (PHP)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: shivammathur/setup-php@cf4cade2721270509d5b1c766ab3549210a39a2a # v2.33.0
         with:
           php-version: '{{ php_version }}'
           tools: phpcs, phpunit
@@ -218,8 +259,8 @@ jobs:
     name: Test (PHP)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: shivammathur/setup-php@cf4cade2721270509d5b1c766ab3549210a39a2a # v2.33.0
         with:
           php-version: '{{ php_version }}'
           tools: phpunit
@@ -232,8 +273,8 @@ jobs:
     name: Dependency Audit (PHP)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: shivammathur/setup-php@cf4cade2721270509d5b1c766ab3549210a39a2a # v2.33.0
         with:
           php-version: '{{ php_version }}'
       - name: Install dependencies
@@ -247,11 +288,17 @@ jobs:
     name: Lint (Elixir)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
         with:
           elixir-version: '{{ elixir_version }}'
           otp-version: '{{ otp_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            deps
+            _build
+          key: {% raw %}mix-${{ hashFiles('**/mix.lock') }}{% endraw %}
       - name: Install dependencies
         run: mix deps.get
       - name: Credo
@@ -261,11 +308,17 @@ jobs:
     name: Test (Elixir)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
         with:
           elixir-version: '{{ elixir_version }}'
           otp-version: '{{ otp_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            deps
+            _build
+          key: {% raw %}mix-${{ hashFiles('**/mix.lock') }}{% endraw %}
       - name: Install dependencies
         run: mix deps.get
       - name: Mix test
@@ -275,17 +328,66 @@ jobs:
     name: Security Scan (Elixir)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
         with:
           elixir-version: '{{ elixir_version }}'
           otp-version: '{{ otp_version }}'
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            deps
+            _build
+          key: {% raw %}mix-${{ hashFiles('**/mix.lock') }}{% endraw %}
       - name: Install dependencies
         run: mix deps.get
       - name: Sobelow
         run: mix sobelow --config
+      - name: Install mix_audit
+        run: mix archive.install hex mix_audit --force
       - name: Deps audit
         run: mix deps.audit
+
+{% endif %}
+{%- if lang_java %}
+  lint-java:
+    name: Lint (Java/Kotlin)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '{{ java_version }}'
+          cache: maven
+      - name: Checkstyle
+        run: mvn checkstyle:check -q
+
+  test-java:
+    name: Test (Java/Kotlin)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '{{ java_version }}'
+          cache: maven
+      - name: Maven test
+        run: mvn test -q
+
+  security-scan-java:
+    name: Security Scan (Java/Kotlin)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '{{ java_version }}'
+          cache: maven
+      - name: OWASP dependency check
+        run: mvn org.owasp:dependency-check-maven:check -q
 
 {% endif %}
 {% if mempalace_enabled %}
@@ -294,9 +396,14 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install MemPalace
+        run: pip install mempalace
       - name: Sync palace
-        run: mempalace mine . --wing "{{ project_name }}"
+        run: mempalace mine . --wing "{{ project_name | lower | replace(' ', '-') }}"
 
 {% endif %}
   # ─── Custom CI Jobs ──────────────────────────────────────────────────────────

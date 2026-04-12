@@ -25,7 +25,7 @@ Primary source directories: `{{ source_dirs }}`
 {%- if lang_elixir %}{% set _ = langs.append("Elixir") %}{% endif -%}
 {%- if langs %}
 Languages in this project: {{ langs | join(", ") }}.
-{% endif %}
+{%- endif %}
 
 {% if not custom_methodology %}
 ## Tiered workflow (S / A / B / C)
@@ -45,7 +45,7 @@ Conventional commits: `feat|fix|docs|refactor|test|chore|ci|perf: description`
 {% if not custom_methodology %}
 ## Guardrails
 
-**NEVER:** Drop or wipe databases; delete infrastructure (Makefile, CI, deploy scripts); push to `main`; skip tests to save time; store secrets or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations (unwired or untested code).
+**NEVER:** Drop or wipe databases; delete infrastructure (CI workflows, deploy scripts, `keel`, `keel.yml`); push to `main`; skip tests to save time; store secrets or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations (unwired or untested code).
 
 **ALWAYS:** Run tests before and after changes; update `.github/context/` when architecture or public surface changes; verify every import resolves; keep functions under 50 lines; prefer editing existing files over adding new ones.
 
@@ -75,6 +75,13 @@ Merge gate: **{{ merge_gate }}**.
 
 ## Detailed playbooks
 
-Start with `.github/instructions/workflow.md` (S/A/B/C ceremonies and tickets) and `.github/instructions/guardrails.md` (full NEVER/ALWAYS list). Also `.github/instructions/prompts.md` and `.github/instructions/processes.md`.
+See `.github/instructions/` for full details:
+- `.github/instructions/guardrails.md` — full NEVER/ALWAYS list and LLM verification
+- `.github/instructions/code-review.md` — review checklist (7 dimensions)
+{%- if not custom_methodology %}
+- `.github/instructions/workflow.md` — tier ceremonies and tickets
+{%- endif %}
+- `.github/instructions/prompts.md` — prompt patterns
+- `.github/instructions/processes.md` — delegation, testing, orchestration
 
 {% endif %}
