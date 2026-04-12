@@ -10,7 +10,7 @@
 
 Your codebase already has app code, tests, and maybe a CI pipeline you copied from Stack Overflow three years ago. What it probably doesn't have is a coherent engineering process that runs the same way every time, across every tool, without anyone having to remember the steps.
 
-Batten is that process, shipped as infrastructure-as-code. One YAML file -- `batten.yml` -- declares your languages, agents, and tools. Batten turns that into CI pipelines, pre-commit hooks, agent instructions, and context files. Change the YAML, re-run `./batten regenerate`, and everything updates.
+Batten is that process, shipped as infrastructure-as-code. One YAML file `batten.yml` declares your languages, agents, and tools. Batten turns that into CI pipelines, pre-commit hooks, agent instructions, and context files. Change the YAML, re-run `./batten regenerate`, and everything updates.
 
 Think of it as docker-compose for your engineering process.
 
@@ -136,7 +136,7 @@ Python, TypeScript, Go, Rust, PHP, Elixir/Erlang, Java/Kotlin. Enable any combin
 
 ## Agents
 
-Claude Code, Cursor, GitHub Copilot, OpenAI Codex. Batten generates instruction files for each in its native format -- all from the same guardrails. Enable any combination; each agent reads only its own file.
+Claude Code, Cursor, GitHub Copilot, OpenAI Codex. Batten generates instruction files for each in its native format all from the same guardrails. Enable any combination; each agent reads only its own file.
 
 ---
 
@@ -159,7 +159,7 @@ Batten strips its own workflow content and keeps only the infrastructure. Your m
 
 ## MemPalace
 
-When enabled, Batten wires MemPalace for the **engineering process** -- agent orientation, architecture search, and CI context-sync. It is not a project runtime dependency. Projects that want MemPalace as part of their application can add it independently.
+When enabled, Batten wires MemPalace for the **engineering process** agent orientation, architecture search, and CI context-sync. It is not a project runtime dependency. Projects that want MemPalace as part of their application can add it independently.
 
 What Batten configures:
 
@@ -201,7 +201,7 @@ your-project/
 
 ## The stack
 
-Batten sits at the infrastructure layer. It doesn't replace your tools -- it wires them together.
+Batten sits at the infrastructure layer. It doesn't replace your tools it wires them together.
 
 | Layer | Tool | What Batten does |
 |-------|------|-----------------|
