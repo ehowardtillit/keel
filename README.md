@@ -1,10 +1,18 @@
 # KEEL
 
+[![Release](https://img.shields.io/github/v/release/ehowardtillit/keel?style=flat-square&color=blue)](https://github.com/ehowardtillit/keel/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/ehowardtillit/keel/keel-ci.yml?branch=master&style=flat-square&label=CI)](https://github.com/ehowardtillit/keel/actions/workflows/keel-ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square)](LICENSE)
+[![Languages](https://img.shields.io/badge/languages-Python%20%C2%B7%20TypeScript%20%C2%B7%20Go%20%C2%B7%20Rust%20%C2%B7%20PHP%20%C2%B7%20Elixir%20%C2%B7%20Java-orange?style=flat-square)](#what-you-configure)
+[![Agents](https://img.shields.io/badge/agents-Claude%20%C2%B7%20Cursor%20%C2%B7%20Copilot%20%C2%B7%20Codex-purple?style=flat-square)](#what-you-configure)
+[![Copier](https://img.shields.io/badge/built%20with-Copier-lightgrey?style=flat-square)](https://copier.readthedocs.io/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+
 **KEEL Enforces Engineering Layouts**
 
-Engineering infrastructure-as-code. Drop it into any repo and get CI pipelines, mechanical guardrails, risk-scaled ceremony, and a documentation architecture -- all pre-configured. Then wire in the tools you already use.
+Engineering infrastructure-as-code for AI-assisted development. One YAML manifest generates CI pipelines, pre-commit hooks, and consistent agent instructions for Claude Code, Cursor, GitHub Copilot, and Codex -- across 7 languages.
 
-KEEL is the foundation layer -- the docker-compose of the AI engineering stack. It configures and connects your memory system, workflow tools, runtime enforcement, and merge gates on a shared foundation of CI, hooks, ceremony, and documentation.
+Think of it as docker-compose for your engineering process: you declare **what** you want, KEEL generates the plumbing.
 
 ---
 
@@ -122,23 +130,27 @@ ci_extra_jobs:
 Edit `keel.yml`, run `./keel regenerate`, and KEEL regenerates your CI pipelines, pre-commit hooks, agent instructions, and tool configs to match.
 
 ```bash
-./keel status          # What's configured
-./keel validate        # Check config consistency
-./keel diff            # Preview changes
-./keel regenerate      # Apply changes
+./keel status              # What's configured
+./keel validate            # Check config consistency
+./keel validate --check-drift  # Detect out-of-sync files
+./keel diff                # Preview changes
+./keel regenerate          # Apply changes
 ```
 
 The CLI is also the primary interface for daily development:
 
 ```bash
-./keel lint            # Run all linters (or ./keel lint --lang python)
-./keel test            # Run all tests (or ./keel test --lang go)
-./keel format          # Auto-format code
-./keel security-scan   # Run security scanners
-./keel hooks install   # Install pre-commit hooks
-./keel context refresh # Update AI context files
-./keel memory status   # MemPalace status (when enabled)
+./keel lint                # Run all linters (or ./keel lint --lang python)
+./keel lint -- --fix       # Pass flags through to underlying tool
+./keel test                # Run all tests (or ./keel test --lang go)
+./keel format              # Auto-format code
+./keel security-scan       # Run security scanners
+./keel hooks install       # Install pre-commit hooks
+./keel context refresh     # Update AI context files
+./keel memory status       # MemPalace status (when enabled)
 ./keel memory search "auth flow"  # Search MemPalace
+./keel eject               # Remove KEEL config, keep generated files
+./keel --version           # Show version
 ```
 
 ---
@@ -180,7 +192,7 @@ KEEL asks these questions during `copier copy` (and stores them in `keel.yml`):
 
 **Methodology:** built-in S/A/B/C tiers or custom (bring your own), branching model (simple/gitflow/trunk), agent instruction generation (on/off)
 
-**Languages:** Python, TypeScript, Go, Rust, PHP, Elixir/Erlang (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and CLI commands)
+**Languages:** Python, TypeScript, Go, Rust, PHP, Elixir/Erlang, Java/Kotlin (multi-select -- each enables language-specific CI jobs, pre-commit hooks, and CLI commands)
 
 **Agent targets:** Claude Code (CLAUDE.md), Cursor (.cursor/rules/keel.mdc), GitHub Copilot (copilot-instructions.md), OpenAI Codex (AGENTS.md) -- all generated from the same guardrails, each in its native format
 
@@ -274,7 +286,7 @@ If gstack is configured, KEEL maps tiers to gstack skills: Tier S triggers `/off
 
 ### CI (GitHub Actions, every push/PR)
 
-Jobs are generated per language. Python gets ruff + bandit + pytest + pip-audit + CodeQL. TypeScript gets eslint + vitest + CodeQL. Go gets golangci-lint + go test + CodeQL. Rust gets clippy + cargo test. PHP gets phpcs + phpunit + composer audit. Elixir gets credo + mix test + sobelow + deps.audit.
+Jobs are generated per language. Python gets ruff + bandit + pytest + pip-audit + CodeQL. TypeScript gets eslint + vitest + CodeQL. Go gets golangci-lint + go test + CodeQL. Rust gets clippy + cargo test. PHP gets phpcs + phpunit + composer audit. Elixir gets credo + mix test + sobelow + deps.audit. Java/Kotlin gets checkstyle + JUnit (Maven) + OWASP dependency-check.
 
 Context staleness checks warn when `.github/context/` files are >30 days old. If MemPalace is enabled, a context-sync job keeps the palace current on merges to main.
 
@@ -326,8 +338,8 @@ If docs are stale, the workflow step that should have produced them was skipped.
 KEEL follows Semantic Versioning. The `VERSION` file is the source of truth.
 
 ```bash
-copier copy gh:ehowardtillit/keel.git --vcs-ref=v0.1.0 my-project
-copier update --vcs-ref=v0.2.0
+copier copy gh:ehowardtillit/keel.git --vcs-ref=v0.1.3 my-project
+copier update --vcs-ref=v0.1.3
 copier update  # latest
 ```
 
