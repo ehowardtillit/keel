@@ -1,4 +1,4 @@
-"""Template rendering tests for KEEL.
+"""Template rendering tests for Batten.
 
 Tests that Copier templates render correctly across key configuration
 combinations, producing valid output without Jinja artifacts.
@@ -217,7 +217,7 @@ class TestCodeGuard:
 class TestExpectedFiles:
     def test_core_files_exist(self, render):
         out = render(lang_python="true")
-        for f in ["keel.yml", "keel", "CONTRIBUTING.md", ".pre-commit-config.yaml",
+        for f in ["batten.yml", "batten", "CONTRIBUTING.md", ".pre-commit-config.yaml",
                    ".github/workflows/ci.yml", ".github/PULL_REQUEST_TEMPLATE.md",
                    ".github/instructions/guardrails.md",
                    ".github/instructions/code-review.md"]:
@@ -233,18 +233,18 @@ class TestExpectedFiles:
                      agent_github_copilot="true")
         assert (out / "CLAUDE.md").exists()
         assert (out / "AGENTS.md").exists()
-        assert (out / ".cursor" / "rules" / "keel.mdc").exists()
+        assert (out / ".cursor" / "rules" / "batten.mdc").exists()
         assert (out / ".github" / "copilot-instructions.md").exists()
 
-    def test_keel_script_executable(self, render):
+    def test_batten_script_executable(self, render):
         out = render(lang_python="true")
-        keel = out / "keel"
-        assert keel.exists()
-        assert os.access(str(keel), os.X_OK)
+        batten = out / "batten"
+        assert batten.exists()
+        assert os.access(str(batten), os.X_OK)
 
-    def test_keel_yml_has_project_name(self, render):
+    def test_batten_yml_has_project_name(self, render):
         out = render(lang_python="true")
-        content = (out / "keel.yml").read_text()
+        content = (out / "batten.yml").read_text()
         assert "Test Project" in content
 
 

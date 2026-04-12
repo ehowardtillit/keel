@@ -1,4 +1,4 @@
-"""Unit tests for the keel CLI core functions.
+"""Unit tests for the batten CLI core functions.
 
 These test the CLI's internal functions without requiring copier or
 external tools -- they exercise the Python logic directly.
@@ -12,9 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def _load_cli():
-    """Import CLI functions by exec'ing the keel script."""
-    cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "keel")
-    ns = {"__file__": cli_path, "__name__": "__keel_test__"}
+    """Import CLI functions by exec'ing the batten script."""
+    cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "batten")
+    ns = {"__file__": cli_path, "__name__": "__batten_test__"}
     with open(cli_path) as f:
         src = f.read()
     code = src.split('if __name__ == "__main__":')[0]
@@ -133,8 +133,8 @@ class TestBuildCopierFlags:
         flags = CLI["build_copier_flags"](data)
         assert "custom_methodology=true" in flags
 
-    def test_keel_methodology(self):
-        data = {"methodology": {"type": "keel"}}
+    def test_batten_methodology(self):
+        data = {"methodology": {"type": "batten"}}
         flags = CLI["build_copier_flags"](data)
         assert "custom_methodology=false" in flags
 

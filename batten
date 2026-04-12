@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""keel -- Engineering Stack CLI
+"""batten -- Engineering Stack CLI
 
-Reads keel.yml from the current directory and manages the full
+Reads batten.yml from the current directory and manages the full
 engineering infrastructure: CI pipelines, pre-commit hooks, linting,
 testing, context management, and tool wiring.
 
@@ -21,7 +21,7 @@ try:
 except ImportError:
     yaml = None
 
-KEEL_FILE = "keel.yml"
+BATTEN_FILE = "batten.yml"
 
 VERSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")
 
@@ -39,16 +39,16 @@ def _c(code, text):
     return f"\033[{code}m{text}\033[0m"
 
 def _info(msg):
-    print(_c("0;34", f"[keel]") + f" {msg}")
+    print(_c("0;34", f"[batten]") + f" {msg}")
 
 def _ok(msg):
-    print(_c("0;32", f"[keel]") + f" {msg}")
+    print(_c("0;32", f"[batten]") + f" {msg}")
 
 def _warn(msg):
-    print(_c("0;33", f"[keel]") + f" {msg}")
+    print(_c("0;33", f"[batten]") + f" {msg}")
 
 def _err(msg):
-    print(_c("0;31", f"[keel]") + f" {msg}", file=sys.stderr)
+    print(_c("0;31", f"[batten]") + f" {msg}", file=sys.stderr)
 
 FIELD_MAP = [
     ("project.name",                        "project_name",            None),
@@ -74,7 +74,7 @@ FIELD_MAP = [
     ("agents.cursor",                       "agent_cursor",            None),
     ("agents.github_copilot",              "agent_github_copilot",    None),
     ("agents.codex",                        "agent_codex",             None),
-    ("stack.memory.mempalace",              "mempalace_enabled",       None),
+    ("stack.engineering_memory.mempalace",   "mempalace_enabled",       None),
     ("stack.workflow.gstack",               "gstack_enabled",          None),
     ("stack.enforcement.runtime",           "runtime_enforcement",     None),
     ("stack.enforcement.merge_gate",        "merge_gate",              None),
@@ -164,12 +164,12 @@ def _parse_yaml_basic(text):
     return root
 
 
-def load_keel():
-    if not os.path.exists(KEEL_FILE):
-        print(f"Error: {KEEL_FILE} not found in current directory.", file=sys.stderr)
+def load_batten():
+    if not os.path.exists(BATTEN_FILE):
+        print(f"Error: {BATTEN_FILE} not found in current directory.", file=sys.stderr)
         sys.exit(1)
     from pathlib import Path
-    text = Path(KEEL_FILE).read_text()
+    text = Path(BATTEN_FILE).read_text()
     return yaml.safe_load(text) if yaml else _parse_yaml_basic(text)
 
 
@@ -236,7 +236,7 @@ def _has_cmd(name):
 # -- Commands: Stack Management ------------------------------------------------
 
 def cmd_status(_args):
-    data = load_keel()
+    data = load_batten()
     langs = []
     for lang in LANGUAGES:
         info = _get(data, f"languages.{lang}", {})
@@ -247,12 +247,12 @@ def cmd_status(_args):
         langs.append(f"{label} {ver}" if ver else label)
 
     agents = [lbl for key, lbl in AGENT_LABELS if _get(data, f"agents.{key}")]
-    mtype = _get(data, "methodology.type", "keel")
+    mtype = _get(data, "methodology.type", "batten")
     msource = _get(data, "methodology.source")
     mpath = _get(data, "methodology.path", ".methodology")
     mver = _get(data, "methodology.version")
-    if mtype == "keel":
-        mtype_display = "keel (S/A/B/C tiers)"
+    if mtype in ("keel", "batten"):
+        mtype_display = "batten (S/A/B/C tiers)"
     elif msource:
         installed = os.path.isdir(mpath) if mpath else False
         src_short = msource.rsplit("/", 1)[-1].replace(".git", "")
@@ -260,7 +260,7 @@ def cmd_status(_args):
         if mver:
             mtype_display += f" @ {mver}"
         if not installed:
-            mtype_display += " (not installed -- run ./keel install)"
+            mtype_display += " (not installed -- run ./batten install)"
     else:
         mtype_display = "custom"
     rt = _get(data, "stack.enforcement.runtime", "none")
@@ -275,7 +275,7 @@ def cmd_status(_args):
     print(f"  Branching:    {_get(data, 'methodology.branching', '?')}")
     print(f"  Languages:    {', '.join(langs) if langs else 'none'}")
     print(f"  Agents:       {', '.join(agents) if agents else 'none'}")
-    print(f"  Memory:       {'MemPalace' if _get(data, 'stack.memory.mempalace') else 'none'}")
+    print(f"  Eng. Memory:  {'MemPalace (context/agents)' if _get(data, 'stack.engineering_memory.mempalace') else 'none'}")
     print(f"  Workflow:     {'gstack' if _get(data, 'stack.workflow.gstack') else 'none'}")
     print(f"  Enforcement:  {' / '.join(enforcement) if enforcement else 'none'}")
     print(f"  Security:     {'CodeGuard' if _get(data, 'stack.security.codeguard') else 'none'}")
@@ -285,7 +285,7 @@ def cmd_status(_args):
 
 
 def cmd_validate(args):
-    data = load_keel()
+    data = load_batten()
     errors, warnings = [], []
     if _get(data, "version") != 1:
         errors.append("'version' must be 1")
@@ -297,7 +297,7 @@ def cmd_validate(args):
             and not _get(data, "methodology.skip_agent_instructions")):
         warnings.append(
             "methodology.type is 'custom' but skip_agent_instructions is false -- "
-            "KEEL agent instructions may conflict with your methodology")
+            "Batten agent instructions may conflict with your methodology")
 
     if hasattr(args, 'check_drift') and args.check_drift:
         print("  Checking for drift...")
@@ -305,7 +305,7 @@ def cmd_validate(args):
         cmd = ["copier", "update", "--trust", "--force", "--pretend"] + flags
         r = subprocess.run(cmd, capture_output=True, text=True)
         if "identical" not in r.stdout.lower() and r.stdout.strip():
-            warnings.append("Generated files may be out of sync with keel.yml. Run ./keel regenerate.")
+            warnings.append("Generated files may be out of sync with batten.yml. Run ./batten regenerate.")
 
     for w in warnings:
         print(f"  Warning: {w}")
@@ -313,7 +313,7 @@ def cmd_validate(args):
         for e in errors:
             print(f"  Error: {e}", file=sys.stderr)
         sys.exit(1)
-    _ok("keel.yml is valid.")
+    _ok("batten.yml is valid.")
 
 
 def _write_ci_custom(jobs):
@@ -321,7 +321,7 @@ def _write_ci_custom(jobs):
         return
     os.makedirs(".github/workflows", exist_ok=True)
     lines = [
-        "# Auto-generated by keel regenerate -- do not edit manually.",
+        "# Auto-generated by batten regenerate -- do not edit manually.",
         "name: CI Custom", "",
         "on:",
         "  push:",
@@ -351,7 +351,7 @@ def _write_ci_custom(jobs):
 
 
 def cmd_regenerate(args):
-    data = load_keel()
+    data = load_batten()
 
     existing = [f for f in MANAGED_FILES if os.path.exists(f)]
     if existing and sys.stdin.isatty():
@@ -377,7 +377,7 @@ def cmd_regenerate(args):
 
 
 def cmd_diff(_args):
-    data = load_keel()
+    data = load_batten()
     flags = build_copier_flags(data)
     cmd = ["copier", "update", "--trust", "--force", "--pretend"] + flags
     sys.exit(subprocess.run(cmd).returncode)
@@ -438,25 +438,25 @@ def _install_methodology(data):
 
 
 def cmd_init(_args):
-    """Interactive KEEL setup using Copier."""
-    if os.path.exists(KEEL_FILE):
-        _err(f"{KEEL_FILE} already exists. Use ./keel regenerate to update.")
+    """Interactive Batten setup using Copier."""
+    if os.path.exists(BATTEN_FILE):
+        _err(f"{BATTEN_FILE} already exists. Use ./batten regenerate to update.")
         sys.exit(1)
     if not _has_cmd("copier"):
         _err("copier is required. Install with: pip install 'copier>=9,<11'")
         sys.exit(1)
-    _info("Initializing new KEEL project...")
+    _info("Initializing new Batten project...")
     _info("Answer the prompts to configure your stack.\n")
-    _run(["copier", "copy", "--trust", "gh:ehowardtillit/keel", "."])
-    if os.path.exists(KEEL_FILE):
-        _ok("keel.yml created. Run ./keel install to complete setup.")
+    _run(["copier", "copy", "--trust", "gh:ehowardtillit/batten", "."])
+    if os.path.exists(BATTEN_FILE):
+        _ok("batten.yml created. Run ./batten install to complete setup.")
     else:
-        _err("Initialization failed -- keel.yml was not created.")
+        _err("Initialization failed -- batten.yml was not created.")
         sys.exit(1)
 
 
 def cmd_install(_args):
-    data = load_keel()
+    data = load_batten()
     _info(f"Install v{_version()}")
     print("=" * 40)
 
@@ -479,16 +479,16 @@ def cmd_install(_args):
 
     # 2. Methodology: install external methodology if configured
     print("\n[2/5] Methodology setup...")
-    mtype = _get(data, "methodology.type", "keel")
+    mtype = _get(data, "methodology.type", "batten")
     source = _get(data, "methodology.source")
     if mtype == "custom" and source:
         _install_methodology(data)
     elif mtype == "custom":
-        print("  Custom methodology selected but no source configured in keel.yml.")
-        print("  Add methodology.source to keel.yml if you want auto-install,")
+        print("  Custom methodology selected but no source configured in batten.yml.")
+        print("  Add methodology.source to batten.yml if you want auto-install,")
         print("  or install your methodology manually.")
     else:
-        print("  Using KEEL's built-in methodology (S/A/B/C tiers).")
+        print("  Using Batten's built-in methodology (S/A/B/C tiers).")
 
     # 3. Pre-commit hooks
     print("\n[3/5] Installing pre-commit hooks...")
@@ -499,7 +499,7 @@ def cmd_install(_args):
 
     # 4. Stack tools
     print("\n[4/5] Checking stack tools...")
-    if _get(data, "stack.memory.mempalace"):
+    if _get(data, "stack.engineering_memory.mempalace"):
         if _has_cmd("mempalace"):
             print("  MemPalace: installed")
             slug = _project_slug(data)
@@ -527,7 +527,7 @@ def cmd_install(_args):
 
     # Summary
     print("\n" + "=" * 40)
-    _ok("Install complete. Run ./keel status to verify.")
+    _ok("Install complete. Run ./batten status to verify.")
 
 
 def cmd_bootstrap(_args):
@@ -582,7 +582,7 @@ def _test_commands(data):
 
 
 def cmd_lint(args):
-    data = load_keel()
+    data = load_batten()
     cmds = _lint_commands(data)
     if not cmds:
         print("No languages enabled for linting.")
@@ -606,7 +606,7 @@ def cmd_lint(args):
 
 
 def cmd_test(args):
-    data = load_keel()
+    data = load_batten()
     cmds = _test_commands(data)
     if not cmds:
         print("No languages enabled for testing.")
@@ -630,7 +630,7 @@ def cmd_test(args):
 
 
 def cmd_format(_args):
-    data = load_keel()
+    data = load_batten()
     ran = False
     if _get(data, "languages.python.enabled"):
         print("  Formatting: Python (ruff)")
@@ -665,7 +665,7 @@ def cmd_format(_args):
 
 
 def cmd_security_scan(_args):
-    data = load_keel()
+    data = load_batten()
     sd = _source_dirs(data)
     ran = False
     if _get(data, "languages.python.enabled"):
@@ -733,14 +733,14 @@ def cmd_secrets(args):
 # -- Commands: Context ---------------------------------------------------------
 
 def cmd_context(args):
-    data = load_keel()
+    data = load_batten()
     action = args.action if hasattr(args, "action") and args.action else "refresh"
 
     if action == "refresh":
         _run_context_refresh(data)
     elif action == "live":
-        if not _get(data, "stack.memory.mempalace"):
-            print("MemPalace is not enabled in keel.yml.")
+        if not _get(data, "stack.engineering_memory.mempalace"):
+            print("MemPalace is not enabled in batten.yml.")
             sys.exit(1)
         _run_context_live(data)
     else:
@@ -780,7 +780,7 @@ def _run_context_refresh(data):
 
     with open(".github/context/MODULE_MAP.md", "w") as f:
         f.write("# Module Map\n\n")
-        f.write("<!-- Auto-generated by keel context refresh -- do not edit manually -->\n\n")
+        f.write("<!-- Auto-generated by batten context refresh -- do not edit manually -->\n\n")
     _run(
         'for dir in $(find . -maxdepth 2 \\( ' + name_expr + ' \\) 2>/dev/null '
         "| sed 's|/[^/]*$||' | sort -u "
@@ -793,7 +793,7 @@ def _run_context_refresh(data):
 
     with open(".github/context/CHANGELOG_RECENT.md", "w") as f:
         f.write("# Recent Changes\n\n")
-        f.write("<!-- Auto-generated by keel context refresh -- do not edit manually -->\n\n")
+        f.write("<!-- Auto-generated by batten context refresh -- do not edit manually -->\n\n")
     _run("git log --oneline -50 >> .github/context/CHANGELOG_RECENT.md 2>/dev/null || true")
 
     with open(".github/context/CHANGELOG_RECENT.md", "a") as f:
@@ -826,7 +826,7 @@ def _run_context_live(data):
     if not os.path.isfile(arch_path):
         with open(arch_path, "w") as f:
             f.write("# Architecture\n\n")
-            f.write("<!-- Auto-generated by keel context live -- do not edit manually -->\n\n")
+            f.write("<!-- Auto-generated by batten context live -- do not edit manually -->\n\n")
 
     with open(arch_path, "a") as f:
         f.write("\n## MemPalace Context\n")
@@ -842,9 +842,9 @@ def _run_context_live(data):
 # -- Commands: Memory ----------------------------------------------------------
 
 def cmd_memory(args):
-    data = load_keel()
-    if not _get(data, "stack.memory.mempalace"):
-        print("MemPalace is not enabled in keel.yml.")
+    data = load_batten()
+    if not _get(data, "stack.engineering_memory.mempalace"):
+        print("MemPalace is not enabled in batten.yml.")
         sys.exit(1)
 
     action = args.action if hasattr(args, "action") and args.action else "status"
@@ -857,7 +857,7 @@ def cmd_memory(args):
     elif action == "search":
         query = args.query if hasattr(args, "query") and args.query else ""
         if not query:
-            print("Usage: keel memory search <query>")
+            print("Usage: batten memory search <query>")
             sys.exit(1)
         _run(["mempalace", "search", query, "--wing", slug])
     else:
@@ -868,14 +868,14 @@ def cmd_memory(args):
 # -- Commands: Eject -----------------------------------------------------------
 
 def cmd_eject(_args):
-    load_keel()
-    _info("Ejecting from KEEL...")
-    for f in ["keel.yml", ".copier-answers.yml"]:
+    load_batten()
+    _info("Ejecting from Batten...")
+    for f in ["batten.yml", ".copier-answers.yml"]:
         if os.path.exists(f):
             os.remove(f)
             print(f"  Removed {f}")
     print("  Generated files (CI, hooks, agent instructions) are yours to keep.")
-    print("  Remove ./keel when ready.")
+    print("  Remove ./batten when ready.")
     print("\nEjection complete. Your project is now standalone.")
 
 
@@ -883,34 +883,34 @@ def cmd_eject(_args):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="keel",
-        description="keel -- Engineering Stack CLI\n\nReads keel.yml and manages infrastructure.",
+        prog="batten",
+        description="batten -- Engineering Stack CLI\n\nReads batten.yml and manages infrastructure.",
         epilog=textwrap.dedent("""\
             examples:
-              ./keel install                Full setup
-              ./keel lint --lang python     Lint only Python
-              ./keel lint -- --fix          Pass --fix to the underlying linter
-              ./keel context refresh        Regenerate context files
-              ./keel memory search <query>  Search MemPalace
-              ./keel validate --check-drift Check for config drift
-              ./keel eject                  Remove keel config, keep generated files
+              ./batten install                Full setup
+              ./batten lint --lang python     Lint only Python
+              ./batten lint -- --fix          Pass --fix to the underlying linter
+              ./batten context refresh        Regenerate context files
+              ./batten memory search <query>  Search MemPalace
+              ./batten validate --check-drift Check for config drift
+              ./batten eject                  Remove batten config, keep generated files
         """),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("-V", "--version", action="version",
-                        version=f"keel {_version()}")
+                        version=f"batten {_version()}")
     sub = parser.add_subparsers(dest="command")
 
-    sub.add_parser("init", help="Interactive setup: create keel.yml from scratch")
+    sub.add_parser("init", help="Interactive setup: create batten.yml from scratch")
     sub.add_parser("install", help="Full setup: bootstrap + methodology + hooks + tools")
     sub.add_parser("bootstrap", help="Run bootstrap.sh only (language toolchains)")
-    sub.add_parser("status", help="Show keel.yml configuration summary")
+    sub.add_parser("status", help="Show batten.yml configuration summary")
 
-    p_validate = sub.add_parser("validate", help="Check keel.yml for errors")
+    p_validate = sub.add_parser("validate", help="Check batten.yml for errors")
     p_validate.add_argument("--check-drift", action="store_true",
-                            help="Check if generated files match keel.yml")
+                            help="Check if generated files match batten.yml")
 
-    sub.add_parser("regenerate", help="Regenerate infrastructure from keel.yml")
+    sub.add_parser("regenerate", help="Regenerate infrastructure from batten.yml")
     sub.add_parser("diff", help="Preview what regenerate would change")
 
     p_lint = sub.add_parser("lint", help="Run linters for enabled languages")
@@ -941,7 +941,7 @@ def main():
                        choices=["status", "mine", "search"])
     p_mem.add_argument("query", nargs="?", default="", help="Search query")
 
-    sub.add_parser("eject", help="Remove keel config, keep generated files")
+    sub.add_parser("eject", help="Remove batten config, keep generated files")
 
     args = parser.parse_args()
     if not args.command:

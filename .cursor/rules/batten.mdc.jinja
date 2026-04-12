@@ -1,17 +1,17 @@
 {% if skip_agent_instructions %}
 # {{ project_name }}
 
-This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by Batten.
 
 Read the methodology's own instruction files for workflow, guardrails, and conventions.
 {% else %}
 ---
-description: "KEEL engineering guardrails and workflow for {{ project_name }}"
+description: "Batten engineering guardrails and workflow for {{ project_name }}"
 globs:
 alwaysApply: true
 ---
 
-# KEEL: {{ project_name }}
+# Batten: {{ project_name }}
 
 **Read first:** `.github/context/*.md` and `docs/` (ADRs, plans, implementations).
 
@@ -44,7 +44,7 @@ All tiers: branch, PR, tests, lint, security. **Conventional commits:** `feat|fi
 {% if not custom_methodology %}
 ## Guardrails
 
-**NEVER:** Drop DB/schema; delete infra (CI workflows, deploy, `keel`, `keel.yml`); push to main; skip tests; secrets in code; `allow_origins=["*"]`; destructive SQL without a plan; TODO/FIXME/HACK in commits; ghost code; bare `except`/silenced errors; dependencies without CVE check.
+**NEVER:** Drop DB/schema; delete infra (CI workflows, deploy, `batten`, `batten.yml`); push to main; skip tests; secrets in code; `allow_origins=["*"]`; destructive SQL without a plan; TODO/FIXME/HACK in commits; ghost code; bare `except`/silenced errors; dependencies without CVE check.
 
 **ALWAYS:** Tests before and after; update `.github/context/` when architecture/API/modules change; parameterized SQL; delegate heavy work to sub-agents; API-first; OWASP; validate inputs at boundaries; verify imports; functions under 50 lines; match file style; prefer editing existing files.
 
@@ -52,9 +52,9 @@ Full detail: `.github/instructions/guardrails.md`
 {% endif %}
 {%- if mempalace_enabled %}
 
-## MemPalace
+## MemPalace (engineering context)
 
-Query MemPalace (MCP) before large or ambiguous work; record durable facts, decisions, and module boundaries the project expects you to maintain.
+MemPalace is wired for engineering context, not as a project dependency. Query it before large or ambiguous work; record decisions and module boundaries.
 {%- endif %}
 {%- if gstack_enabled %}
 

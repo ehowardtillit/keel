@@ -1,7 +1,7 @@
 {% if skip_agent_instructions %}
 # {{ project_name }}
 
-This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by Batten.
 
 Read the methodology's own instruction files for workflow, guardrails, and conventions.
 {% else %}
@@ -54,7 +54,7 @@ Details, ticket creation, and ceremony steps: `.github/instructions/workflow.md`
 
 ### NEVER
 - Drop a database or schema
-- Delete infrastructure files (CI workflows, deploy scripts, `keel`, `keel.yml`)
+- Delete infrastructure files (CI workflows, deploy scripts, `batten`, `batten.yml`)
 - Push directly to main
 - Skip tests to save time
 - Store secrets in code or commit .env with real credentials
@@ -76,9 +76,9 @@ Full guardrails (NEVER/ALWAYS/LLM-specific + verification protocol): `.github/in
 {% endif %}
 {% if mempalace_enabled %}
 
-## MemPalace
+## MemPalace (engineering context)
 
-On wake-up, call `mempalace_status`. Before responding about any person, project, or past event, call `mempalace_search` or `mempalace_kg_query` first. After each session, call `mempalace_diary_write`.
+MemPalace is wired for engineering context -- agent orientation and decision history. It is not a project runtime dependency. On wake-up, call `mempalace_status`. Before making assumptions about architecture or past decisions, call `mempalace_search`. After substantive sessions, call `mempalace_diary_write`.
 {% endif %}
 {% if gstack_enabled %}
 

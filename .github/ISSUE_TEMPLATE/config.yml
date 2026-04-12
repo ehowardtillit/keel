@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: KEEL Documentation
-    url: https://github.com/ehowardtillit/keel#readme
+  - name: Batten Documentation
+    url: https://github.com/ehowardtillit/batten#readme
     about: Read the docs before opening an issue

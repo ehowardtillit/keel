@@ -1,13 +1,13 @@
 {% if skip_agent_instructions %}
 # {{ project_name }}
 
-This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by Batten.
 
 Read the methodology's own instruction files for workflow, guardrails, and conventions.
 {% else %}
 # {{ project_name }}
 
-This repository uses the KEEL scaffold (KEEL Enforces Engineering Layouts). Primary source paths: `{{ source_dirs }}`.
+This repository uses the Batten scaffold. Primary source paths: `{{ source_dirs }}`.
 {%- set langs = [] -%}
 {%- if lang_python %}{% set _ = langs.append("Python " + python_version) %}{% endif -%}
 {%- if lang_typescript %}{% set _ = langs.append("TypeScript") %}{% endif -%}
@@ -54,7 +54,7 @@ Full detail: `.github/instructions/workflow.md`
 {% if not custom_methodology %}
 ## Critical guardrails
 
-**NEVER:** drop a database or apply destructive schema without explicit approval; delete infrastructure files (CI workflows, deploy scripts, `keel`, `keel.yml`); push directly to `main`; skip tests; store secrets in code or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations; silence errors with bare `except:` or `except: pass`.
+**NEVER:** drop a database or apply destructive schema without explicit approval; delete infrastructure files (CI workflows, deploy scripts, `batten`, `batten.yml`); push directly to `main`; skip tests; store secrets in code or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations; silence errors with bare `except:` or `except: pass`.
 
 **ALWAYS:** run tests before and after changes; update `.github/context/` when architecture, APIs, or modules change; verify imports resolve; keep functions under 50 lines; prefer editing existing files over adding new ones; match the style of the surrounding code.
 
@@ -62,9 +62,9 @@ Full lists and verification: `.github/instructions/guardrails.md`
 {% endif %}
 {%- if mempalace_enabled %}
 
-## MemPalace
+## MemPalace (engineering context)
 
-On wake-up, call `mempalace_status`. Before responding about any person, project, or past event, call `mempalace_search` or `mempalace_kg_query` first. After each session, call `mempalace_diary_write`.
+MemPalace is wired here for engineering context -- agent orientation, architecture search, and session journaling. It is not a project runtime dependency. On wake-up, call `mempalace_status`. Before making assumptions about past decisions or architecture, call `mempalace_search` or `mempalace_kg_query`. After substantive sessions, call `mempalace_diary_write`.
 {%- endif %}
 {%- if gstack_enabled %}
 

@@ -1,5 +1,4 @@
-# ⚓ KEEL -- Copier Template Configuration
-# KEEL Enforces Engineering Layouts
+# Batten -- Copier Template Configuration
 # https://copier.readthedocs.io/
 
 _min_copier_version: "9.0.0"
@@ -8,12 +7,12 @@ _templates_suffix: .jinja
 
 _tasks:
   - "chmod +x bootstrap.sh"
-  - "chmod +x keel"
+  - "chmod +x batten"
 
 _exclude:
   - "copier.yml"
   - ".git"
-  - ".github/workflows/keel-ci.yml"
+  - ".github/workflows/batten-ci.yml"
   - ".github/ISSUE_TEMPLATE/bug.yml"
   - ".github/ISSUE_TEMPLATE/feature.yml"
   - ".github/ISSUE_TEMPLATE/config.yml"
@@ -40,7 +39,7 @@ source_dirs:
 
 license:
   type: str
-  help: "License for YOUR project (KEEL itself is AGPL-3.0)"
+  help: "License for YOUR project (Batten itself is AGPL-3.0)"
   default: "MIT"
   choices:
     - "MIT"
@@ -135,13 +134,13 @@ java_version:
     - "22"
 
 # ─── Methodology ──────────────────────────────────────────────────────────────
-# KEEL ships a default workflow (S/A/B/C tiers). If your org already has
-# a methodology, set custom_methodology=true to strip KEEL's workflow content
+# Batten ships a default workflow (S/A/B/C tiers). If your org already has
+# a methodology, set custom_methodology=true to strip Batten's workflow content
 # and keep only the infrastructure (CI, hooks, CLI, tool wiring).
 
 custom_methodology:
   type: bool
-  help: "Use your own methodology? (strips KEEL tiers/workflow from generated files)"
+  help: "Use your own methodology? (strips Batten tiers/workflow from generated files)"
   default: false
 
 skip_agent_instructions:
@@ -160,7 +159,7 @@ branching_model:
     - "trunk"
 
 # ─── AI Agent Targets ─────────────────────────────────────────────────────────
-# KEEL generates agent instruction files for each selected target.
+# Batten generates agent instruction files for each selected target.
 # Each agent reads only its own file -- safe to enable all.
 
 agent_claude_code:
@@ -170,7 +169,7 @@ agent_claude_code:
 
 agent_cursor:
   type: bool
-  help: "Generate .cursor/rules/keel.mdc (Cursor)"
+  help: "Generate .cursor/rules/batten.mdc (Cursor)"
   default: true
 
 agent_github_copilot:
@@ -183,11 +182,14 @@ agent_codex:
   help: "Generate AGENTS.md (OpenAI Codex CLI)"
   default: false
 
-# ─── Memory Layer ─────────────────────────────────────────────────────────────
+# ─── Engineering Memory ───────────────────────────────────────────────────────
+# MemPalace here serves the engineering process: it keeps context files current,
+# powers agent orientation, and runs in CI to mine the repo on merge.
+# Projects that want MemPalace as a runtime dependency can add it independently.
 
 mempalace_enabled:
   type: bool
-  help: "MemPalace integration (local semantic memory + knowledge graph via MCP)"
+  help: "MemPalace for engineering context (agent orientation, CI context-sync)"
   default: false
 
 # ─── Workflow Tools ───────────────────────────────────────────────────────────
@@ -212,7 +214,7 @@ runtime_enforcement:
 
 merge_gate:
   type: str
-  help: "Additional merge-time validation beyond KEEL's CI"
+  help: "Additional merge-time validation beyond Batten's CI"
   default: "none"
   choices:
     - "none"

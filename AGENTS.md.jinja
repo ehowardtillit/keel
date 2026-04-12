@@ -1,7 +1,7 @@
 {% if skip_agent_instructions %}
 # {{ project_name }}
 
-This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by KEEL.
+This project uses a custom engineering methodology. Agent instructions are provided by the project's methodology system, not by Batten.
 
 Read the methodology's own instruction files for workflow, guardrails, and conventions.
 {% else %}
@@ -45,15 +45,15 @@ Conventional commits: `feat|fix|docs|refactor|test|chore|ci|perf: description`
 {% if not custom_methodology %}
 ## Guardrails
 
-**NEVER:** Drop or wipe databases; delete infrastructure (CI workflows, deploy scripts, `keel`, `keel.yml`); push to `main`; skip tests to save time; store secrets or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations (unwired or untested code).
+**NEVER:** Drop or wipe databases; delete infrastructure (CI workflows, deploy scripts, `batten`, `batten.yml`); push to `main`; skip tests to save time; store secrets or commit credentials; leave TODO/FIXME/HACK in committed code; add ghost implementations (unwired or untested code).
 
 **ALWAYS:** Run tests before and after changes; update `.github/context/` when architecture or public surface changes; verify every import resolves; keep functions under 50 lines; prefer editing existing files over adding new ones.
 
 {% endif %}
 {% if mempalace_enabled -%}
-## MemPalace
+## MemPalace (engineering context)
 
-MemPalace MCP is available. Query `mempalace_search` before making assumptions about past decisions.
+MemPalace is wired for engineering context -- architecture search, decision history, and session journaling. It is not a project runtime dependency. Query `mempalace_search` before making assumptions about past decisions.
 
 {% endif %}
 {% if gstack_enabled -%}

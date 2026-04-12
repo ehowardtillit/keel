@@ -1,11 +1,11 @@
-"""Shared fixtures for KEEL template tests."""
+"""Shared fixtures for Batten template tests."""
 
 import os
 import subprocess
 
 import pytest
 
-KEEL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BATTEN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 COPIER_AVAILABLE = (
     subprocess.run(["which", "copier"], capture_output=True).returncode == 0
@@ -44,7 +44,7 @@ def _copier_copy(target_dir, **overrides):
         "dependency_updates": "dependabot",
     }
     defaults.update(overrides)
-    cmd = ["copier", "copy", "--trust", "--force", KEEL_ROOT, str(target_dir)]
+    cmd = ["copier", "copy", "--trust", "--force", BATTEN_ROOT, str(target_dir)]
     for k, v in defaults.items():
         cmd += ["-d", f"{k}={v}"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)

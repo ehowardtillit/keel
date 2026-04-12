@@ -5,7 +5,7 @@
 Hard blocks. Violating any of these requires explicit user override:
 
 - NEVER drop a database or schema (`DROP DATABASE`, `DROP SCHEMA`)
-- NEVER delete infrastructure files (CI workflows, deploy scripts, `keel`, `keel.yml`, migration configs)
+- NEVER delete infrastructure files (CI workflows, deploy scripts, `batten`, `batten.yml`, migration configs)
 - NEVER push directly to main -- always branch + PR
 - NEVER skip tests to save time
 - NEVER store secrets in code or commit `.env` files with real credentials

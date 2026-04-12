@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug with the KEEL template
+description: Report a bug with the Batten template
 title: "[Bug] "
 labels: ["bug"]
 body:
@@ -7,14 +7,14 @@ body:
     attributes:
       value: |
         ## Bug Report
-        Thanks for helping improve KEEL! Please fill out the details below.
+        Thanks for helping improve Batten! Please fill out the details below.
 
   - type: textarea
     id: description
     attributes:
       label: Description
       description: A clear description of the bug.
-      placeholder: "When I run copier copy with KEEL, ..."
+      placeholder: "When I run copier copy with Batten, ..."
     validations:
       required: true
 
@@ -24,7 +24,7 @@ body:
       label: Steps to Reproduce
       description: How can we reproduce this issue?
       placeholder: |
-        1. Run `copier copy --trust https://github.com/ehowardtillit/keel .`
+        1. Run `copier copy --trust https://github.com/ehowardtillit/batten .`
         2. Select options ...
         3. See error ...
     validations:
@@ -47,9 +47,9 @@ body:
       required: true
 
   - type: input
-    id: keel-version
+    id: batten-version
     attributes:
-      label: KEEL Version
+      label: Batten Version
       description: Check the VERSION file or the tag you used.
       placeholder: "0.1.0"
     validations:

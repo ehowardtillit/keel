@@ -7,46 +7,46 @@
 ```bash
 git clone <your-repo-url>
 cd {{ project_name | lower | replace(' ', '-') }}
-./keel install
+./batten install
 ```
 
 ## Development
 
 ```bash
-./keel status             # Show stack configuration
-./keel lint               # Run all linters
-./keel test               # Run all tests
-./keel format             # Auto-format code
-./keel security-scan      # Run security scanners
-./keel hooks run          # Run pre-commit hooks
-./keel context refresh    # Update AI context files
-{% if mempalace_enabled %}./keel memory status      # MemPalace status
-./keel context live       # Sync MemPalace to context files
+./batten status             # Show stack configuration
+./batten lint               # Run all linters
+./batten test               # Run all tests
+./batten format             # Auto-format code
+./batten security-scan      # Run security scanners
+./batten hooks run          # Run pre-commit hooks
+./batten context refresh    # Update AI context files
+{% if mempalace_enabled %}./batten memory status      # MemPalace status
+./batten context live       # Sync MemPalace to context files
 {% endif %}```
 
 Filter by language:
 
 ```bash
-./keel lint --lang python
-./keel test --lang go
+./batten lint --lang python
+./batten test --lang go
 ```
 
 ## Stack Configuration
 
-Edit `keel.yml` to change your engineering stack, then regenerate:
+Edit `batten.yml` to change your engineering stack, then regenerate:
 
 ```bash
-./keel status             # What's configured now
-./keel diff               # Preview changes
-./keel regenerate         # Apply changes
+./batten status             # What's configured now
+./batten diff               # Preview changes
+./batten regenerate         # Apply changes
 ```
 
 ## Project Structure
 
 ```
 {{ project_name | lower | replace(' ', '-') }}/
-├── keel.yml                         # Stack manifest
-├── keel                             # CLI
+├── batten.yml                         # Stack manifest
+├── batten                             # CLI
 ├── {{ source_dirs }}                # Source code
 ├── tests/                           # Test suite
 ├── .github/
@@ -59,7 +59,7 @@ Edit `keel.yml` to change your engineering stack, then regenerate:
 {% if not custom_methodology %}
 ## Workflow
 
-This project uses the KEEL tiered workflow. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+This project uses the Batten tiered workflow. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 | Tier | Scope | Review |
 |------|-------|--------|

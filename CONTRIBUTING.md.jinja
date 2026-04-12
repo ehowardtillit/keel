@@ -5,7 +5,7 @@
 Run install once from the repository root:
 
 ```bash
-./keel install
+./batten install
 ```
 
 Manual setup (if you prefer not to use the script):
@@ -34,19 +34,19 @@ Manual setup (if you prefer not to use the script):
 
 ## Common commands
 
-Run `./keel` for full usage. Key commands:
+Run `./batten` for full usage. Key commands:
 
-- `./keel install` — full setup (bootstrap + methodology + hooks + tools)
-- `./keel lint` — all enabled linters
-- `./keel lint --lang python` — lint only Python
-- `./keel test` — all enabled test suites
-- `./keel test --lang go` — test only Go
-- `./keel format` — auto-format code
-- `./keel security-scan` — run security scanners
-- `./keel hooks install` — install pre-commit hooks
-- `./keel hooks run` — run pre-commit hooks on all files
-- `./keel context refresh` — regenerate `.github/context/` summaries
-{% if mempalace_enabled %}- `./keel context live` / `./keel memory status` — MemPalace integration (see below)
+- `./batten install` — full setup (bootstrap + methodology + hooks + tools)
+- `./batten lint` — all enabled linters
+- `./batten lint --lang python` — lint only Python
+- `./batten test` — all enabled test suites
+- `./batten test --lang go` — test only Go
+- `./batten format` — auto-format code
+- `./batten security-scan` — run security scanners
+- `./batten hooks install` — install pre-commit hooks
+- `./batten hooks run` — run pre-commit hooks on all files
+- `./batten context refresh` — regenerate `.github/context/` summaries
+{% if mempalace_enabled %}- `./batten context live` / `./batten memory status` — MemPalace integration (see below)
 {% endif %}
 
 ## Development workflow
@@ -86,7 +86,7 @@ Co-authored-by: Name <email@example.com>
 
 ## Pre-commit hooks
 
-Hooks run on every commit (install with `./keel hooks install` or `pre-commit install`).
+Hooks run on every commit (install with `./batten hooks install` or `pre-commit install`).
 {% if not custom_methodology %}
 
 - **General:** YAML/JSON checks, large-file guard, branch protection (`main`/`master`), trailing whitespace, end-of-file fixer, `detect-secrets` against `.secrets.baseline`.
@@ -104,7 +104,7 @@ Hooks run on every commit (install with `./keel hooks install` or `pre-commit in
 {% endif %}
 {% endif %}
 
-Run everything locally with `pre-commit run --all-files` or `./keel hooks run`.
+Run everything locally with `pre-commit run --all-files` or `./batten hooks run`.
 
 {% if not custom_methodology %}
 ## AI-generated code
@@ -122,9 +122,9 @@ Treat generated code like any other contribution: it must be complete, wired, an
 {% endif %}
 
 {% if mempalace_enabled %}
-## MemPalace
+## MemPalace (engineering context)
 
-Project context is stored in MemPalace. Check status with `./keel memory status` and sync live context with `./keel context live` when you need agents to see the latest state.
+Engineering context is indexed by MemPalace for agent orientation. Check status with `./batten memory status` and sync live context with `./batten context live`. This is for the engineering process, not a project runtime dependency -- projects that want their own MemPalace can add it independently.
 {% endif %}
 
 {% if gstack_enabled %}
@@ -136,28 +136,28 @@ Use **`/review`** before opening a pull request, and **`/ship`** when you are re
 ## Testing
 
 {% if lang_python %}
-- **Python:** `./keel test --lang python` or `pytest` under `tests/`.
+- **Python:** `./batten test --lang python` or `pytest` under `tests/`.
 {% endif %}
 {% if lang_typescript %}
-- **TypeScript:** `./keel test --lang typescript` or `npx vitest run`.
+- **TypeScript:** `./batten test --lang typescript` or `npx vitest run`.
 {% endif %}
 {% if lang_go %}
-- **Go:** `./keel test --lang go` or `go test ./...`.
+- **Go:** `./batten test --lang go` or `go test ./...`.
 {% endif %}
 {% if lang_rust %}
-- **Rust:** `./keel test --lang rust` or `cargo test`.
+- **Rust:** `./batten test --lang rust` or `cargo test`.
 {% endif %}
 {% if lang_php %}
-- **PHP:** `./keel test --lang php` or `vendor/bin/phpunit`.
+- **PHP:** `./batten test --lang php` or `vendor/bin/phpunit`.
 {% endif %}
 {% if lang_elixir %}
-- **Elixir:** `./keel test --lang elixir` or `mix test`.
+- **Elixir:** `./batten test --lang elixir` or `mix test`.
 {% endif %}
 {% if lang_java %}
-- **Java/Kotlin:** `./keel test --lang java` or `mvn test`.
+- **Java/Kotlin:** `./batten test --lang java` or `mvn test`.
 {% endif %}
 {% if not (lang_python or lang_typescript or lang_go or lang_rust or lang_php or lang_elixir or lang_java) %}
-Add tests appropriate to your stack. The `./keel test` command picks up all enabled languages automatically.
+Add tests appropriate to your stack. The `./batten test` command picks up all enabled languages automatically.
 {% endif %}
 
 ## Code style

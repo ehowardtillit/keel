@@ -1,4 +1,4 @@
-name: KEEL CI
+name: Batten CI
 
 on:
   push:
@@ -45,10 +45,10 @@ jobs:
             "README.md"
             "CLAUDE.md"
             "AGENTS.md"
-            ".cursor/rules/keel.mdc"
+            ".cursor/rules/batten.mdc"
             ".mcp.json"
-            "keel"
-            "keel.yml"
+            "batten"
+            "batten.yml"
           )
           MISSING=0
           for f in "${EXPECTED_FILES[@]}"; do
@@ -152,10 +152,10 @@ jobs:
             ".github/CODEOWNERS.jinja"
             "CLAUDE.md.jinja"
             "AGENTS.md.jinja"
-            ".cursor/rules/keel.mdc.jinja"
+            ".cursor/rules/batten.mdc.jinja"
             ".mcp.json.jinja"
-            "keel"
-            "keel.yml.jinja"
+            "batten"
+            "batten.yml.jinja"
             "install.sh"
           )
           MISSING=0

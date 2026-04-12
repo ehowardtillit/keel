@@ -1,18 +1,18 @@
 #!/bin/sh
 set -e
 
-# KEEL installer
-# Usage: curl -sL https://raw.githubusercontent.com/ehowardtillit/keel/main/install.sh | sh
-# Or:    curl -sL https://raw.githubusercontent.com/ehowardtillit/keel/main/install.sh | sh -s my-project
+# Batten installer
+# Usage: curl -sL https://raw.githubusercontent.com/ehowardtillit/batten/main/install.sh | sh
+# Or:    curl -sL https://raw.githubusercontent.com/ehowardtillit/batten/main/install.sh | sh -s my-project
 
-REPO="gh:ehowardtillit/keel"
+REPO="gh:ehowardtillit/batten"
 TARGET="${1:-.}"
 
-info()  { printf '\033[0;34m[keel]\033[0m %s\n' "$1"; }
-ok()    { printf '\033[0;32m[keel]\033[0m %s\n' "$1"; }
-err()   { printf '\033[0;31m[keel]\033[0m %s\n' "$1" >&2; }
+info()  { printf '\033[0;34m[batten]\033[0m %s\n' "$1"; }
+ok()    { printf '\033[0;32m[batten]\033[0m %s\n' "$1"; }
+err()   { printf '\033[0;31m[batten]\033[0m %s\n' "$1" >&2; }
 
-info "KEEL installer"
+info "Batten installer"
 
 # -- Check dependencies -------------------------------------------------------
 
@@ -56,15 +56,15 @@ fi
 # -- Scaffold ------------------------------------------------------------------
 
 if [ "$TARGET" = "." ]; then
-    info "Scaffolding KEEL into current directory..."
+    info "Scaffolding Batten into current directory..."
     copier copy --trust "$REPO" .
 else
-    info "Scaffolding KEEL into $TARGET..."
+    info "Scaffolding Batten into $TARGET..."
     copier copy --trust "$REPO" "$TARGET"
     cd "$TARGET"
 fi
 
-chmod +x keel 2>/dev/null || true
+chmod +x batten 2>/dev/null || true
 chmod +x bootstrap.sh 2>/dev/null || true
 
 # -- Init git if needed --------------------------------------------------------
@@ -73,21 +73,21 @@ if [ ! -d .git ]; then
     info "Initializing git repository..."
     git init -q
     git add -A
-    git commit -q -m "feat: init from KEEL scaffold"
+    git commit -q -m "feat: init from Batten scaffold"
     ok "Git initialized with initial commit."
 fi
 
 # -- Install -------------------------------------------------------------------
 
-info "Running ./keel install..."
+info "Running ./batten install..."
 echo ""
-./keel install
+./batten install
 
 echo ""
 ok "Done. Your project is ready."
 echo ""
 info "Next steps:"
-echo "  1. Edit keel.yml to configure your stack"
-echo "  2. Run ./keel regenerate to apply changes"
-echo "  3. Run ./keel status to verify"
+echo "  1. Edit batten.yml to configure your stack"
+echo "  2. Run ./batten regenerate to apply changes"
+echo "  3. Run ./batten status to verify"
 echo ""

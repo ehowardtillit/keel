@@ -38,8 +38,8 @@ Thumbs.db
 # Build artifacts
 docs/book/
 
-# Cursor (consumer projects ignore generated rules; KEEL tracks .jinja sources)
-# .cursor/ is NOT ignored here so .cursor/rules/keel.mdc.jinja is tracked
+# Cursor (consumer projects ignore generated rules; Batten tracks .jinja sources)
+# .cursor/ is NOT ignored here so .cursor/rules/batten.mdc.jinja is tracked
 
 # MemPalace (local state -- not version controlled)
 .mempalace/

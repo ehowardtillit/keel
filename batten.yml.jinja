@@ -1,9 +1,9 @@
-# ⚓ keel.yml -- Engineering Stack Manifest
+# batten.yml -- Engineering Stack Manifest
 # This file declares your project's engineering infrastructure.
-# Edit it, then run: ./keel regenerate
+# Edit it, then run: ./batten regenerate
 #
 # Think of this as docker-compose for your engineering process:
-# you declare WHAT you want, KEEL generates the plumbing.
+# you declare WHAT you want, Batten generates the plumbing.
 
 version: 1
 
@@ -16,11 +16,11 @@ project:
   license: "{{ license }}"
 
 # ─── Methodology ─────────────────────────────────────────────────────────────
-# "keel"   -- use KEEL's built-in S/A/B/C tiered workflow
-# "custom" -- bring your own methodology; KEEL provides only infrastructure
+# "batten" -- use Batten's built-in S/A/B/C tiered workflow
+# "custom" -- bring your own methodology; Batten provides only infrastructure
 
 methodology:
-  type: "{% if custom_methodology %}custom{% else %}keel{% endif %}"
+  type: "{% if custom_methodology %}custom{% else %}batten{% endif %}"
   branching: "{{ branching_model }}"
   skip_agent_instructions: {{ skip_agent_instructions | lower }}
   # External methodology (uncomment to configure):
@@ -33,7 +33,7 @@ methodology:
 # Enable the languages your project uses. Each one activates:
 #   - CI pipeline jobs (lint, test, security scan)
 #   - Pre-commit hooks (TODO/FIXME blocking, language linters)
-#   - CLI commands (./keel lint --lang X, ./keel test --lang X)
+#   - CLI commands (./batten lint --lang X, ./batten test --lang X)
 #   - Dependabot/Renovate ecosystem config
 #   - Bootstrap toolchain checks
 
@@ -91,9 +91,9 @@ languages:
 {%- endif %}
 
 # ─── Agents ──────────────────────────────────────────────────────────────────
-# When methodology.skip_agent_instructions is false, KEEL generates
+# When methodology.skip_agent_instructions is false, Batten generates
 # instruction files for each enabled agent. When true, your methodology
-# provides its own agent instructions and KEEL skips generation.
+# provides its own agent instructions and Batten skips generation.
 
 agents:
   claude_code: {{ agent_claude_code | lower }}
@@ -102,12 +102,12 @@ agents:
   codex: {{ agent_codex | lower }}
 
 # ─── Stack ───────────────────────────────────────────────────────────────────
-# Declare which tools to wire. KEEL generates configs, bootstrap steps,
+# Declare which tools to wire. Batten generates configs, bootstrap steps,
 # CLI commands, and CI jobs for each enabled tool.
 
 stack:
-  memory:
-    mempalace: {{ mempalace_enabled | lower }}
+  engineering_memory:
+    mempalace: {{ mempalace_enabled | lower }}   # powers agent context, not a project runtime dep
 
   workflow:
     gstack: {{ gstack_enabled | lower }}
@@ -123,7 +123,7 @@ stack:
     updater: "{{ dependency_updates }}"     # dependabot | renovate | none
 
 # ─── CI Extensions ──────────────────────────────────────────────────────────
-# Add custom CI stages beyond what KEEL generates. Each entry becomes
+# Add custom CI stages beyond what Batten generates. Each entry becomes
 # a step in the CI pipeline. Useful for contract validation, E2E tests,
 # performance tests, compliance gates, etc.
 #
