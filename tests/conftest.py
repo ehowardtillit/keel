@@ -56,6 +56,49 @@ def _copier_copy(target_dir, **overrides):
     assert result.returncode == 0, f"copier copy failed:\n{result.stderr}"
 
 
+def _copier_update(target_dir, **overrides):
+    """Run copier update (respects _skip_if_exists) in an already-copied dir."""
+    defaults = {
+        "project_name": "Test Project",
+        "github_owner": "test-owner",
+        "source_dirs": "src/",
+        "license": "MIT",
+        "lang_python": "false",
+        "lang_typescript": "false",
+        "lang_go": "false",
+        "lang_rust": "false",
+        "lang_php": "false",
+        "lang_elixir": "false",
+        "lang_java": "false",
+        "lang_csharp": "false",
+        "lang_ruby": "false",
+        "python_version": "3.12",
+        "java_version": "21",
+        "dotnet_version": "8.0",
+        "ruby_version": "3.3",
+        "custom_methodology": "false",
+        "skip_agent_instructions": "false",
+        "branching_model": "simple",
+        "agent_claude_code": "true",
+        "agent_cursor": "true",
+        "agent_github_copilot": "true",
+        "agent_codex": "false",
+        "mempalace_enabled": "false",
+        "gstack_enabled": "false",
+        "runtime_enforcement": "none",
+        "merge_gate": "none",
+        "codeguard_enabled": "false",
+        "dependency_updates": "dependabot",
+        "ci_platform": "github",
+    }
+    defaults.update(overrides)
+    cmd = ["copier", "update", "--trust", "--vcs-ref=HEAD", str(target_dir)]
+    for k, v in defaults.items():
+        cmd += ["-d", f"{k}={v}"]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    return result
+
+
 @pytest.fixture
 def render(tmp_path):
     """Fixture that returns a function to render templates with given overrides."""
@@ -65,3 +108,14 @@ def render(tmp_path):
         _copier_copy(target, **overrides)
         return target
     return _render
+
+
+@pytest.fixture
+def render_and_update(tmp_path):
+    """Fixture: copy fresh, then return a function to update (honoring _skip_if_exists)."""
+    def _render_and_update(**overrides):
+        target = tmp_path / "output"
+        target.mkdir()
+        _copier_copy(target, **overrides)
+        return target
+    return _render_and_update

@@ -5,7 +5,11 @@ combinations, producing valid output without Jinja artifacts.
 """
 import os
 import re
+import sys
 import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from conftest import _copier_update
 
 JINJA_ARTIFACT_RE = re.compile(r"(?<!\$)\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}")
 
@@ -283,3 +287,47 @@ class TestNoJinjaArtifacts:
             _assert_no_jinja_artifacts(yml)
         for yml in out.rglob("*.yaml"):
             _assert_no_jinja_artifacts(yml)
+
+
+# ── Regenerate preserves user-customized files ───────────────────────────────
+
+class TestRegeneratePreservesCustomized:
+    """copier update must not clobber files listed in _skip_if_exists."""
+
+    def test_agents_md_preserved(self, render_and_update):
+        out = render_and_update(lang_python="true", agent_codex="true")
+        agents = out / "AGENTS.md"
+        assert agents.exists()
+        agents.write_text("# My custom agent instructions\nDo not overwrite me.\n")
+        _copier_update(out, lang_python="true", agent_codex="true")
+        assert "Do not overwrite me." in agents.read_text()
+
+    def test_claude_md_preserved(self, render_and_update):
+        out = render_and_update(lang_python="true")
+        claude = out / "CLAUDE.md"
+        assert claude.exists()
+        claude.write_text("# Custom Claude playbook\nHands off.\n")
+        _copier_update(out, lang_python="true")
+        assert "Hands off." in claude.read_text()
+
+    def test_architecture_md_preserved(self, render_and_update):
+        out = render_and_update(lang_python="true")
+        arch = out / ".github" / "context" / "ARCHITECTURE.md"
+        assert arch.exists()
+        arch.write_text("# Our Architecture\nCustom content here.\n")
+        _copier_update(out, lang_python="true")
+        assert "Custom content here." in arch.read_text()
+
+    def test_conventions_md_preserved(self, render_and_update):
+        out = render_and_update(lang_python="true")
+        conv = out / ".github" / "context" / "CONVENTIONS.md"
+        assert conv.exists()
+        conv.write_text("# Our Conventions\nWe use tabs.\n")
+        _copier_update(out, lang_python="true")
+        assert "We use tabs." in conv.read_text()
+
+    def test_fresh_copy_still_renders_markers(self, render):
+        out = render(lang_python="true", agent_codex="true")
+        agents = out / "AGENTS.md"
+        assert agents.exists()
+        assert len(agents.read_text().strip()) > 0

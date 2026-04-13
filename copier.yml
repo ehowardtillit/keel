@@ -20,6 +20,15 @@ _exclude:
   - "install.sh"
   - "CHANGELOG.md"
 
+_skip_if_exists:
+  - "AGENTS.md"
+  - "CLAUDE.md"
+  - ".github/context/*.md"
+  - "docs/plans/*.md"
+  - "docs/decisions/*.md"
+  - "docs/implementations/*.md"
+  - "docs/analysis/*.md"
+
 # ─── Project Basics ───────────────────────────────────────────────────────────
 
 project_name:
