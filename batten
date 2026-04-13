@@ -302,7 +302,7 @@ def cmd_validate(args):
     if hasattr(args, 'check_drift') and args.check_drift:
         print("  Checking for drift...")
         flags = build_copier_flags(data)
-        cmd = ["copier", "update", "--trust", "--force", "--pretend"] + flags
+        cmd = ["copier", "update", "--trust", "--pretend"] + flags
         r = subprocess.run(cmd, capture_output=True, text=True)
         if "identical" not in r.stdout.lower() and r.stdout.strip():
             warnings.append("Generated files may be out of sync with batten.yml. Run ./batten regenerate.")
@@ -416,35 +416,32 @@ def _write_yaml_file(path, doc, header=""):
 
 def cmd_regenerate(args):
     data = load_batten()
-
-    existing = [f for f in MANAGED_FILES if os.path.exists(f)]
-    if existing and sys.stdin.isatty():
-        print(f"  Warning: {len(existing)} existing files will be overwritten:")
-        for f in existing:
-            print(f"    {f}")
-        resp = input("  Continue? [y/N] ")
-        if resp.lower() != 'y':
-            print("  Aborted.")
-            sys.exit(0)
-
     flags = build_copier_flags(data)
-    cmd = ["copier", "update", "--trust", "--force"] + flags
+
+    dry_run = hasattr(args, "dry_run") and args.dry_run
+    cmd = ["copier", "update", "--trust"] + flags
+    if dry_run:
+        cmd.append("--pretend")
+        _info("Dry run -- no files will be written.")
+
     print(f"  Running: copier update ...\n")
     rc = subprocess.run(cmd).returncode
     if rc != 0:
         print("\nCopier exited with errors.", file=sys.stderr)
         sys.exit(rc)
-    ci_jobs = _get(data, "ci_extra_jobs", [])
-    ci_platform = _get(data, "ci.platform", "github")
-    if ci_jobs:
-        _write_ci_custom(ci_jobs, ci_platform=ci_platform)
-    _ok("Regeneration complete.")
+
+    if not dry_run:
+        ci_jobs = _get(data, "ci_extra_jobs", [])
+        ci_platform = _get(data, "ci.platform", "github")
+        if ci_jobs:
+            _write_ci_custom(ci_jobs, ci_platform=ci_platform)
+        _ok("Regeneration complete.")
 
 
 def cmd_diff(_args):
     data = load_batten()
     flags = build_copier_flags(data)
-    cmd = ["copier", "update", "--trust", "--force", "--pretend"] + flags
+    cmd = ["copier", "update", "--trust", "--pretend"] + flags
     sys.exit(subprocess.run(cmd).returncode)
 
 
@@ -1075,7 +1072,9 @@ def main():
     p_validate.add_argument("--check-drift", action="store_true",
                             help="Check if generated files match batten.yml")
 
-    sub.add_parser("regenerate", help="Regenerate infrastructure from batten.yml")
+    p_regen = sub.add_parser("regenerate", help="Regenerate infrastructure from batten.yml")
+    p_regen.add_argument("--dry-run", action="store_true",
+                         help="Preview changes without writing files")
     sub.add_parser("diff", help="Preview what regenerate would change")
 
     p_lint = sub.add_parser("lint", help="Run linters for enabled languages")

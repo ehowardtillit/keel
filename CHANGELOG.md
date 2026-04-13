@@ -2,6 +2,16 @@
 
 All notable changes to Batten are documented here.
 
+## [0.1.6] - 2026-04-13
+
+### Fixed
+- `regenerate` no longer clobbers user-customized `AGENTS.md`, `CLAUDE.md`, `.github/context/*.md`, and `docs/{plans,decisions,implementations,analysis}/*.md`
+- Removed `--force` flag from Copier invocations so `_skip_if_exists` is respected
+
+### Added
+- `./batten regenerate --dry-run` previews changes without writing files
+- Regression tests for skip-if-exists behavior across all protected file categories
+
 ## [0.1.5] - 2026-04-12
 
 ### Added

@@ -50,10 +50,11 @@ cd my-project && ./batten install
 ### Pulling updates
 
 ```bash
-./batten regenerate
+./batten regenerate            # apply template updates
+./batten regenerate --dry-run  # preview without writing
 ```
 
-Reads your `batten.yml` and re-runs Copier with the current config. Your customizations stay intact.
+Reads your `batten.yml` and re-runs Copier with the current config. Files you've customized (`AGENTS.md`, `CLAUDE.md`, `.github/context/*.md`, `docs/{plans,decisions,implementations,analysis}/*.md`) are automatically preserved -- delete one first if you want it regenerated.
 
 ---
 
@@ -273,8 +274,8 @@ Tier is auto-detected by CI from changed file paths. Override in the PR descript
 Batten follows semver. The `VERSION` file is the source of truth.
 
 ```bash
-copier copy gh:ehowardtillit/batten.git --vcs-ref=v0.1.5 my-project
-copier update --vcs-ref=v0.1.5
+copier copy gh:ehowardtillit/batten.git --vcs-ref=v0.1.6 my-project
+copier update --vcs-ref=v0.1.6
 copier update  # latest
 ```
 
