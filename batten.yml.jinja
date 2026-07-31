@@ -42,6 +42,9 @@ languages:
   python:
     enabled: true
     version: "{{ python_version }}"
+{%- if python_dir != "." %}
+    dir: "{{ python_dir }}"
+{%- endif %}
 {%- else %}
   python:
     enabled: false
@@ -49,6 +52,9 @@ languages:
 {%- if lang_typescript %}
   typescript:
     enabled: true
+{%- if typescript_dir != "." %}
+    dir: "{{ typescript_dir }}"
+{%- endif %}
 {%- else %}
   typescript:
     enabled: false

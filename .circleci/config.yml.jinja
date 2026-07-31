@@ -26,11 +26,18 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+{%- if python_dir != "." %}
+            [ -f {{ python_dir }}/requirements.txt ] && pip install -r {{ python_dir }}/requirements.txt || true
+{%- else %}
             [ -f requirements.txt ] && pip install -r requirements.txt || true
+{%- endif %}
             pip install pytest pytest-cov
       - run:
           name: Run tests
           command: |
+{%- if python_dir != "." %}
+            cd {{ python_dir }}
+{%- endif %}
             if [ -d tests ]; then
               pytest tests/ -v --tb=short --cov --cov-report=term-missing
             else
@@ -56,20 +63,38 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
-      - run: npm ci
+      - run:
+{%- if typescript_dir != "." %}
+          command: cd {{ typescript_dir }} && npm ci
+{%- else %}
+          command: npm ci
+{%- endif %}
       - run:
           name: ESLint
+{%- if typescript_dir != "." %}
+          command: cd {{ typescript_dir }} && npx eslint . --max-warnings 0
+{%- else %}
           command: npx eslint . --max-warnings 0
+{%- endif %}
 
   test-typescript:
     docker:
       - image: cimg/node:20.0
     steps:
       - checkout
-      - run: npm ci
+      - run:
+{%- if typescript_dir != "." %}
+          command: cd {{ typescript_dir }} && npm ci
+{%- else %}
+          command: npm ci
+{%- endif %}
       - run:
           name: Vitest
+{%- if typescript_dir != "." %}
+          command: cd {{ typescript_dir }} && npx vitest run
+{%- else %}
           command: npx vitest run
+{%- endif %}
 
 {% endif %}
 {% if lang_go %}
