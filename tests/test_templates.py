@@ -219,6 +219,122 @@ class TestMemPalace:
         out = render(lang_python="true", mempalace_enabled="true")
         assert (out / ".mcp.json").exists()
 
+    def test_context_sync_uses_default_branch(self, render):
+        out = render(lang_python="true", mempalace_enabled="true")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "default_branch" in content
+        assert "refs/heads/main'" not in content
+
+
+# ── Language directory tests ─────────────────────────────────────────────────
+
+class TestLanguageDirs:
+    """Tests for python_dir / typescript_dir monorepo support."""
+
+    def test_python_dir_working_directory(self, render):
+        out = render(lang_python="true", python_dir="backend")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "working-directory: backend" in content
+
+    def test_python_dir_requirements_path(self, render):
+        out = render(lang_python="true", python_dir="backend")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "backend/requirements.txt" in content
+
+    def test_python_dir_audit_path(self, render):
+        out = render(lang_python="true", python_dir="backend")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "pip-audit -r backend/requirements.txt" in content
+
+    def test_typescript_dir_cache_dependency_path(self, render):
+        out = render(lang_typescript="true", typescript_dir="frontend")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "cache-dependency-path: frontend/package-lock.json" in content
+
+    def test_typescript_dir_working_directory(self, render):
+        out = render(lang_typescript="true", typescript_dir="frontend")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "working-directory: frontend" in content
+
+    def test_default_python_dir_no_working_directory(self, render):
+        out = render(lang_python="true")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "working-directory" not in content
+
+    def test_default_typescript_dir_no_cache_dependency_path(self, render):
+        out = render(lang_typescript="true")
+        content = (out / ".github" / "workflows" / "ci.yml").read_text()
+        assert "cache-dependency-path" not in content
+
+    def test_dependabot_python_dir(self, render):
+        out = render(lang_python="true", python_dir="backend",
+                     dependency_updates="dependabot")
+        content = (out / ".github" / "dependabot.yml").read_text()
+        assert 'directory: "/backend"' in content
+
+    def test_dependabot_typescript_dir(self, render):
+        out = render(lang_typescript="true", typescript_dir="frontend",
+                     dependency_updates="dependabot")
+        content = (out / ".github" / "dependabot.yml").read_text()
+        assert 'directory: "/frontend"' in content
+
+    def test_dependabot_default_python_dir(self, render):
+        out = render(lang_python="true", dependency_updates="dependabot")
+        content = (out / ".github" / "dependabot.yml").read_text()
+        assert 'directory: "/"' in content
+
+    def test_dependabot_default_typescript_dir(self, render):
+        out = render(lang_typescript="true", dependency_updates="dependabot")
+        content = (out / ".github" / "dependabot.yml").read_text()
+        assert 'directory: "/"' in content
+
+    def test_batten_yml_python_dir_rendered(self, render):
+        out = render(lang_python="true", python_dir="backend")
+        content = (out / "batten.yml").read_text()
+        assert 'dir: "backend"' in content
+
+    def test_batten_yml_typescript_dir_rendered(self, render):
+        out = render(lang_typescript="true", typescript_dir="frontend")
+        content = (out / "batten.yml").read_text()
+        assert 'dir: "frontend"' in content
+
+    def test_batten_yml_default_dir_not_rendered(self, render):
+        out = render(lang_python="true", lang_typescript="true")
+        content = (out / "batten.yml").read_text()
+        assert "dir:" not in content
+
+    def test_gitlab_python_dir(self, render):
+        out = render(lang_python="true", python_dir="backend", ci_platform="gitlab")
+        content = (out / ".gitlab-ci.yml").read_text()
+        assert "backend/requirements.txt" in content
+        assert "cd backend" in content
+
+    def test_gitlab_typescript_dir(self, render):
+        out = render(lang_typescript="true", typescript_dir="frontend", ci_platform="gitlab")
+        content = (out / ".gitlab-ci.yml").read_text()
+        assert "cd frontend" in content
+
+    def test_circleci_python_dir(self, render):
+        out = render(lang_python="true", python_dir="backend", ci_platform="circleci")
+        content = (out / ".circleci" / "config.yml").read_text()
+        assert "backend/requirements.txt" in content
+        assert "cd backend" in content
+
+    def test_circleci_typescript_dir(self, render):
+        out = render(lang_typescript="true", typescript_dir="frontend", ci_platform="circleci")
+        content = (out / ".circleci" / "config.yml").read_text()
+        assert "cd frontend" in content
+
+    def test_valid_yaml_with_dirs(self, render):
+        out = render(lang_python="true", python_dir="backend",
+                     lang_typescript="true", typescript_dir="frontend")
+        _assert_valid_yaml(out / ".github" / "workflows" / "ci.yml")
+
+    def test_no_jinja_artifacts_with_dirs(self, render):
+        out = render(lang_python="true", python_dir="backend",
+                     lang_typescript="true", typescript_dir="frontend")
+        _assert_no_jinja_artifacts(out / ".github" / "workflows" / "ci.yml")
+
 
 class TestRenovate:
     def test_renovate_json_when_selected(self, render):

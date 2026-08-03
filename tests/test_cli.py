@@ -203,3 +203,73 @@ class TestBuildFindNameExprNewLangs:
     def test_ruby(self):
         result = CLI["_build_find_name_expr"](["ruby"])
         assert "*.rb" in result
+
+
+class TestBuildCopierFlagsLangDirs:
+    def test_python_dir_round_trips(self):
+        data = {"languages": {"python": {"enabled": True, "dir": "backend"}}}
+        flags = CLI["build_copier_flags"](data)
+        assert "python_dir=backend" in flags
+
+    def test_typescript_dir_round_trips(self):
+        data = {"languages": {"typescript": {"enabled": True, "dir": "frontend"}}}
+        flags = CLI["build_copier_flags"](data)
+        assert "typescript_dir=frontend" in flags
+
+    def test_python_dir_root_round_trips(self):
+        data = {"languages": {"python": {"enabled": True, "dir": "."}}}
+        flags = CLI["build_copier_flags"](data)
+        assert "python_dir=." in flags
+
+
+class TestLangCwd:
+    def test_root_dir_returns_none(self):
+        data = {"languages": {"python": {"dir": "."}}}
+        assert CLI["_lang_cwd"](data, "python") is None
+
+    def test_non_root_dir_returns_dir(self):
+        data = {"languages": {"python": {"dir": "backend"}}}
+        assert CLI["_lang_cwd"](data, "python") == "backend"
+
+    def test_missing_dir_returns_none(self):
+        data = {"languages": {"python": {}}}
+        assert CLI["_lang_cwd"](data, "python") is None
+
+
+class TestLintCommandsWithCwd:
+    def test_typescript_eslint_cwd_when_dir_set(self):
+        data = {"languages": {"typescript": {"enabled": True, "dir": "frontend"}}}
+        cmds = CLI["_lint_commands"](data)
+        ts_cmds = [(lbl, cmd, cwd) for lbl, cmd, cwd in cmds if "TypeScript" in lbl]
+        assert len(ts_cmds) == 1
+        assert ts_cmds[0][2] == "frontend"
+
+    def test_typescript_eslint_no_cwd_when_root(self):
+        data = {"languages": {"typescript": {"enabled": True, "dir": "."}}}
+        cmds = CLI["_lint_commands"](data)
+        ts_cmds = [(lbl, cmd, cwd) for lbl, cmd, cwd in cmds if "TypeScript" in lbl]
+        assert len(ts_cmds) == 1
+        assert ts_cmds[0][2] is None
+
+
+class TestTestCommandsWithCwd:
+    def test_python_pytest_cwd_when_dir_set(self):
+        data = {"languages": {"python": {"enabled": True, "dir": "backend"}}}
+        cmds = CLI["_test_commands"](data)
+        py_cmds = [(lbl, cmd, cwd) for lbl, cmd, cwd in cmds if "Python" in lbl]
+        assert len(py_cmds) == 1
+        assert py_cmds[0][2] == "backend"
+
+    def test_python_pytest_no_cwd_when_root(self):
+        data = {"languages": {"python": {"enabled": True, "dir": "."}}}
+        cmds = CLI["_test_commands"](data)
+        py_cmds = [(lbl, cmd, cwd) for lbl, cmd, cwd in cmds if "Python" in lbl]
+        assert len(py_cmds) == 1
+        assert py_cmds[0][2] is None
+
+    def test_typescript_vitest_cwd_when_dir_set(self):
+        data = {"languages": {"typescript": {"enabled": True, "dir": "frontend"}}}
+        cmds = CLI["_test_commands"](data)
+        ts_cmds = [(lbl, cmd, cwd) for lbl, cmd, cwd in cmds if "TypeScript" in lbl]
+        assert len(ts_cmds) == 1
+        assert ts_cmds[0][2] == "frontend"

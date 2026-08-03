@@ -2,6 +2,32 @@
 
 All notable changes to Batten are documented here.
 
+## [0.2.0] - 2026-07-31
+
+### Added
+- `python_dir` copier variable: directory containing `requirements.txt` / `pyproject.toml` (default `"."` for root; zero-diff with existing projects)
+- `typescript_dir` copier variable: directory containing `package.json` / `package-lock.json` (default `"."` for root)
+- `languages.python.dir` / `languages.typescript.dir` keys in generated `batten.yml`
+- GitHub CI (`ci.yml`): `working-directory` on `test-python` when `python_dir != "."`, `cache-dependency-path` and `defaults.run.working-directory` on TypeScript lint/test jobs when `typescript_dir != "."`
+- GitHub CI (`ci.yml`): `dependency-audit-python` now checks `python_dir/requirements.txt` instead of hardcoded root
+- GitLab CI (`.gitlab-ci.yml`): `cd <dir>` prefix on Python and TypeScript jobs when dirs are non-root
+- CircleCI (`.circleci/config.yml`): `cd <dir>` prefix on Python and TypeScript jobs when dirs are non-root
+- Dependabot (`.github/dependabot.yml`): pip and npm `directory:` now reflects `python_dir` / `typescript_dir` (previously always hardcoded `"/"`)
+- `context-sync` CI job: condition now uses `github.event.repository.default_branch` instead of hardcoded `main` (fixes MemPalace mining on master-default repos)
+- `batten` CLI: `_lang_cwd()` helper; `_lint_commands`, `_test_commands` return `(label, cmd, cwd)` triples; `cmd_lint`, `cmd_test`, `cmd_format`, `cmd_security_scan` pass `cwd=` to subprocess for TypeScript and Python
+- `batten validate`: rejects absolute paths and `..` in `python_dir` / `typescript_dir`; warns if directory is missing
+- `FIELD_MAP`: added `languages.python.dir` → `python_dir` and `languages.typescript.dir` → `typescript_dir` for round-trip via `./batten regenerate`
+
+### Fixed
+- `batten-ci.yml` triggers on `[main, master, develop]` — Batten's own CI now runs on this repo (previously only `main`, so CI never ran on the `master` default branch)
+- `test-python` CI: Python test suite in non-root directory is no longer silently skipped
+- `dependency-audit-python` CI: pip-audit now actually audits the configured manifest instead of silently skipping
+- TypeScript CI: `setup-node` with `cache: npm` no longer fails with "Dependencies lock file not found" on split layouts
+
+### Notes
+- `dir` support is added for Python and TypeScript only in this release; Go, Rust, PHP, Elixir, Java, C#, and Ruby receive the same treatment in a future release
+- Zero-diff guarantee: projects using the default `"."` for both dirs regenerate byte-identical output
+
 ## [0.1.6] - 2026-04-13
 
 ### Fixed

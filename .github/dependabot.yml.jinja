@@ -3,7 +3,7 @@ version: 2
 updates:
 {% if lang_python %}
   - package-ecosystem: "pip"
-    directory: "/"
+    directory: "{% if python_dir != '.' %}/{{ python_dir }}{% else %}/{% endif %}"
     schedule:
       interval: "weekly"
     labels:
@@ -13,7 +13,7 @@ updates:
 {% endif %}
 {% if lang_typescript %}
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "{% if typescript_dir != '.' %}/{{ typescript_dir }}{% else %}/{% endif %}"
     schedule:
       interval: "weekly"
     commit-message:

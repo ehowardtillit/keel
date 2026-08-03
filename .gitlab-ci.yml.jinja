@@ -19,9 +19,16 @@ test-python:
   stage: test
   image: python:{{ python_version }}
   script:
+{%- if python_dir != "." %}
+    - "[ -f {{ python_dir }}/requirements.txt ] && pip install -r {{ python_dir }}/requirements.txt || true"
+{%- else %}
     - "[ -f requirements.txt ] && pip install -r requirements.txt || true"
+{%- endif %}
     - pip install pytest pytest-cov
     - |
+{%- if python_dir != "." %}
+      cd {{ python_dir }}
+{%- endif %}
       if [ -d tests ]; then
         pytest tests/ -v --tb=short --cov --cov-report=term-missing
       else
@@ -41,6 +48,10 @@ security-scan-python:
 lint-typescript:
   stage: lint
   image: node:20
+{%- if typescript_dir != "." %}
+  before_script:
+    - cd {{ typescript_dir }}
+{%- endif %}
   script:
     - npm ci
     - npx eslint . --max-warnings 0
@@ -48,6 +59,10 @@ lint-typescript:
 test-typescript:
   stage: test
   image: node:20
+{%- if typescript_dir != "." %}
+  before_script:
+    - cd {{ typescript_dir }}
+{%- endif %}
   script:
     - npm ci
     - npx vitest run

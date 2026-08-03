@@ -79,8 +79,10 @@ languages:
   python:
     enabled: true
     version: "3.12"
+    # dir: "backend"      # monorepo: directory containing requirements.txt
   typescript:
     enabled: true
+    # dir: "frontend"     # monorepo: directory containing package.json
 
 ci:
   platform: "github"          # "github", "gitlab", or "circleci"

@@ -60,7 +60,9 @@ FIELD_MAP = [
     ("methodology.skip_agent_instructions", "skip_agent_instructions", None),
     ("languages.python.enabled",            "lang_python",             None),
     ("languages.python.version",            "python_version",          None),
+    ("languages.python.dir",               "python_dir",              None),
     ("languages.typescript.enabled",        "lang_typescript",         None),
+    ("languages.typescript.dir",           "typescript_dir",          None),
     ("languages.go.enabled",                "lang_go",                 None),
     ("languages.rust.enabled",              "lang_rust",               None),
     ("languages.php.enabled",               "lang_php",                None),
@@ -284,6 +286,30 @@ def cmd_status(_args):
         print(f"  CI Extensions: {len(ci_jobs)} custom job{'s' if len(ci_jobs) != 1 else ''}")
 
 
+def _validate_lang_dir(lang, dotpath, errors, warnings):
+    """Validate and normalize a language directory path."""
+    d = _get(dotpath if isinstance(dotpath, dict) else {}, "")
+    return d
+
+
+def _check_lang_dir(data, lang, field, errors, warnings):
+    """Validate a language directory setting: reject absolute paths and '..' traversal."""
+    d = _get(data, f"languages.{lang}.{field}")
+    if d is None or d == ".":
+        return
+    if os.path.isabs(d):
+        errors.append(f"languages.{lang}.{field}: absolute paths are not allowed (got '{d}')")
+    elif ".." in d.split("/"):
+        errors.append(f"languages.{lang}.{field}: path traversal ('..') is not allowed (got '{d}')")
+    else:
+        d_stripped = d.rstrip("/")
+        if d_stripped != d:
+            warnings.append(
+                f"languages.{lang}.{field}: trailing slash stripped ('{d}' -> '{d_stripped}')")
+        if not os.path.isdir(d_stripped):
+            warnings.append(f"languages.{lang}.{field}: directory '{d_stripped}' not found")
+
+
 def cmd_validate(args):
     data = load_batten()
     errors, warnings = [], []
@@ -298,6 +324,11 @@ def cmd_validate(args):
         warnings.append(
             "methodology.type is 'custom' but skip_agent_instructions is false -- "
             "Batten agent instructions may conflict with your methodology")
+
+    if _get(data, "languages.python.enabled"):
+        _check_lang_dir(data, "python", "dir", errors, warnings)
+    if _get(data, "languages.typescript.enabled"):
+        _check_lang_dir(data, "typescript", "dir", errors, warnings)
 
     if hasattr(args, 'check_drift') and args.check_drift:
         print("  Checking for drift...")
@@ -673,53 +704,64 @@ def cmd_doctor(_args):
 
 # -- Commands: Quality ---------------------------------------------------------
 
+def _lang_cwd(data, lang):
+    """Return the working directory for a language, or None if root (.)."""
+    d = _get(data, f"languages.{lang}.dir", ".")
+    return d if d and d != "." else None
+
+
 def _lint_commands(data):
     cmds = []
     sd = _source_dirs(data)
     if _get(data, "languages.python.enabled"):
         cmds.append(("Python (ruff)",
                       ["ruff", "check", sd, "--ignore", "E501,F401",
-                       "--exclude", "*/venv/*,*/.venv/*"]))
+                       "--exclude", "*/venv/*,*/.venv/*"],
+                      None))
     if _get(data, "languages.typescript.enabled"):
-        cmds.append(("TypeScript (eslint)", ["npx", "eslint", "."]))
+        cmds.append(("TypeScript (eslint)", ["npx", "eslint", "."],
+                     _lang_cwd(data, "typescript")))
     if _get(data, "languages.go.enabled"):
-        cmds.append(("Go (golangci-lint)", ["golangci-lint", "run"]))
+        cmds.append(("Go (golangci-lint)", ["golangci-lint", "run"], None))
     if _get(data, "languages.rust.enabled"):
-        cmds.append(("Rust (clippy)", ["cargo", "clippy"]))
+        cmds.append(("Rust (clippy)", ["cargo", "clippy"], None))
     if _get(data, "languages.php.enabled"):
         cmds.append(("PHP (phpcs)",
-                      ["vendor/bin/phpcs", "--standard=PSR12", sd]))
+                      ["vendor/bin/phpcs", "--standard=PSR12", sd],
+                      None))
     if _get(data, "languages.elixir.enabled"):
-        cmds.append(("Elixir (credo)", ["mix", "credo", "--strict"]))
+        cmds.append(("Elixir (credo)", ["mix", "credo", "--strict"], None))
     if _get(data, "languages.java.enabled"):
-        cmds.append(("Java (checkstyle)", ["mvn", "checkstyle:check", "-q"]))
+        cmds.append(("Java (checkstyle)", ["mvn", "checkstyle:check", "-q"], None))
     if _get(data, "languages.csharp.enabled"):
-        cmds.append(("C# (dotnet format)", ["dotnet", "format", "--verify-no-changes"]))
+        cmds.append(("C# (dotnet format)", ["dotnet", "format", "--verify-no-changes"], None))
     if _get(data, "languages.ruby.enabled"):
-        cmds.append(("Ruby (rubocop)", ["bundle", "exec", "rubocop"]))
+        cmds.append(("Ruby (rubocop)", ["bundle", "exec", "rubocop"], None))
     return cmds
 
 
 def _test_commands(data):
     cmds = []
     if _get(data, "languages.python.enabled"):
-        cmds.append(("Python (pytest)", ["pytest", "tests/", "-v", "--tb=short"]))
+        cmds.append(("Python (pytest)", ["pytest", "tests/", "-v", "--tb=short"],
+                     _lang_cwd(data, "python")))
     if _get(data, "languages.typescript.enabled"):
-        cmds.append(("TypeScript (vitest)", ["npx", "vitest", "run"]))
+        cmds.append(("TypeScript (vitest)", ["npx", "vitest", "run"],
+                     _lang_cwd(data, "typescript")))
     if _get(data, "languages.go.enabled"):
-        cmds.append(("Go", ["go", "test", "./..."]))
+        cmds.append(("Go", ["go", "test", "./..."], None))
     if _get(data, "languages.rust.enabled"):
-        cmds.append(("Rust", ["cargo", "test"]))
+        cmds.append(("Rust", ["cargo", "test"], None))
     if _get(data, "languages.php.enabled"):
-        cmds.append(("PHP (phpunit)", ["vendor/bin/phpunit"]))
+        cmds.append(("PHP (phpunit)", ["vendor/bin/phpunit"], None))
     if _get(data, "languages.elixir.enabled"):
-        cmds.append(("Elixir", ["mix", "test"]))
+        cmds.append(("Elixir", ["mix", "test"], None))
     if _get(data, "languages.java.enabled"):
-        cmds.append(("Java (maven)", ["mvn", "test", "-q"]))
+        cmds.append(("Java (maven)", ["mvn", "test", "-q"], None))
     if _get(data, "languages.csharp.enabled"):
-        cmds.append(("C# (dotnet test)", ["dotnet", "test"]))
+        cmds.append(("C# (dotnet test)", ["dotnet", "test"], None))
     if _get(data, "languages.ruby.enabled"):
-        cmds.append(("Ruby (rspec)", ["bundle", "exec", "rspec"]))
+        cmds.append(("Ruby (rspec)", ["bundle", "exec", "rspec"], None))
     return cmds
 
 
@@ -732,13 +774,13 @@ def cmd_lint(args):
     lang_filter = args.lang if hasattr(args, "lang") and args.lang else None
     extra = args.passthrough if hasattr(args, "passthrough") and args.passthrough else []
     failed = []
-    for label, cmd in cmds:
+    for label, cmd, cwd in cmds:
         if lang_filter and lang_filter.lower() not in label.lower():
             continue
         if extra:
             cmd = cmd + extra
         print(f"  Linting: {label}")
-        r = _run(cmd, check=False)
+        r = _run(cmd, check=False, **({} if cwd is None else {"cwd": cwd}))
         if r.returncode != 0:
             failed.append(label)
     if failed:
@@ -756,13 +798,13 @@ def cmd_test(args):
     lang_filter = args.lang if hasattr(args, "lang") and args.lang else None
     extra = args.passthrough if hasattr(args, "passthrough") and args.passthrough else []
     failed = []
-    for label, cmd in cmds:
+    for label, cmd, cwd in cmds:
         if lang_filter and lang_filter.lower() not in label.lower():
             continue
         if extra:
             cmd = cmd + extra
         print(f"  Testing: {label}")
-        r = _run(cmd, check=False)
+        r = _run(cmd, check=False, **({} if cwd is None else {"cwd": cwd}))
         if r.returncode != 0:
             failed.append(label)
     if failed:
@@ -780,7 +822,9 @@ def cmd_format(_args):
         ran = True
     if _get(data, "languages.typescript.enabled"):
         print("  Formatting: TypeScript (prettier)")
-        _run(["npx", "prettier", "--write", "."])
+        _run(["npx", "prettier", "--write", "."],
+             **({} if _lang_cwd(data, "typescript") is None
+                else {"cwd": _lang_cwd(data, "typescript")}))
         ran = True
     if _get(data, "languages.go.enabled"):
         print("  Formatting: Go (gofmt)")
@@ -824,7 +868,9 @@ def cmd_security_scan(_args):
         ran = True
     if _get(data, "languages.typescript.enabled"):
         print("  Scanning: TypeScript (npm audit)")
-        _run(["npm", "audit"], check=False)
+        _run(["npm", "audit"], check=False,
+             **({} if _lang_cwd(data, "typescript") is None
+                else {"cwd": _lang_cwd(data, "typescript")}))
         ran = True
     if _get(data, "languages.go.enabled"):
         print("  Scanning: Go (govulncheck)")

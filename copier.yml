@@ -72,10 +72,22 @@ python_version:
     - "3.12"
     - "3.13"
 
+python_dir:
+  type: str
+  help: "Directory containing requirements.txt / pyproject.toml (use '.' for root)"
+  default: "."
+  when: "{{ lang_python }}"
+
 lang_typescript:
   type: bool
   help: "TypeScript support (eslint, vitest)"
   default: false
+
+typescript_dir:
+  type: str
+  help: "Directory containing package.json / package-lock.json (use '.' for root)"
+  default: "."
+  when: "{{ lang_typescript }}"
 
 lang_go:
   type: bool
